@@ -1,0 +1,1 @@
+ C:\\Users\\Pichau\\Downloads\\DressCode\\dresscode\\.dart_tool\\flutter_build\\b4a898d3c68eec4bc7eee4ae250972b6\\native_assets.json: 

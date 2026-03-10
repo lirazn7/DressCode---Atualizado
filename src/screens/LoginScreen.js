@@ -23,60 +23,51 @@ const ADMIN_EMAIL    = 'admin@dresscode.com';
 const ADMIN_PASSWORD = 'Admin@2025';
 // ─────────────────────────────────────────────────────────────────────────────
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 export default function LoginScreen({ onLogin, onGoToRegister }) {
-  const [identifier, setIdentifier] = useState(''); // e-mail ou @username
-  const [password, setPassword]     = useState('');
-  const [showPass, setShowPass]     = useState(false);
-  const [loading, setLoading]       = useState(false);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading]   = useState(false);
 
   const handleLogin = async () => {
     // ── 1. Validação de campos vazios ──────────────────────────────────────
-    if (!identifier.trim() || !password.trim()) {
-      Alert.alert('Atenção', 'Por favor, preencha o e-mail (ou @username) e a senha.');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Atenção', 'Por favor, preencha o e-mail e a senha.');
+      return;
+    }
+
+    // ── 2. Validação básica de formato de e-mail ───────────────────────────
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('E-mail inválido', 'Digite um endereço de e-mail válido.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const input = identifier.trim().toLowerCase();
-
-      // ── 2. Verificar acesso de Admin (hardcoded) ───────────────────────
+      // ── 3. Verificar acesso de Admin (hardcoded) ───────────────────────
       if (
-        input === ADMIN_EMAIL.toLowerCase() &&
+        email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
         password === ADMIN_PASSWORD
       ) {
         setLoading(false);
-        onLogin({ id: 0, nome: 'Admin', email: ADMIN_EMAIL, username: 'admin', role: 'admin' });
+        onLogin({ id: 0, nome: 'Admin', email: ADMIN_EMAIL, role: 'admin' });
         return;
       }
 
-      // ── 3. Determinar se o input é e-mail ou username ──────────────────
-      let result = null;
-
-      if (emailRegex.test(input)) {
-        // Busca por e-mail
-        result = db.getFirstSync(
-          'SELECT * FROM users WHERE email = ? AND password = ? LIMIT 1;',
-          [input, password]
-        );
-      } else {
-        // Busca por username (remove @ se o usuário digitou com @)
-        const usernameInput = input.startsWith('@') ? input.slice(1) : input;
-        result = db.getFirstSync(
-          'SELECT * FROM users WHERE username = ? AND password = ? LIMIT 1;',
-          [usernameInput, password]
-        );
-      }
+      // ── 4. Buscar usuário no banco SQLite ──────────────────────────────
+      const result = db.getFirstSync(
+        'SELECT * FROM users WHERE email = ? AND password = ? LIMIT 1;',
+        [email.trim().toLowerCase(), password]
+      );
 
       setLoading(false);
 
       if (result) {
         onLogin({ ...result, role: 'user' });
       } else {
-        Alert.alert('Acesso negado', 'E-mail, @username ou senha incorretos. Tente novamente.');
+        Alert.alert('Acesso negado', 'E-mail ou senha incorretos. Tente novamente.');
       }
     } catch (error) {
       setLoading(false);
@@ -113,17 +104,16 @@ export default function LoginScreen({ onLogin, onGoToRegister }) {
             {/* Formulário */}
             <View style={styles.form}>
 
-              {/* Campo de E-mail ou Username */}
+              {/* Campo de E-mail */}
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="account-circle-outline" size={24} color="#ffffff80" />
+                <MaterialCommunityIcons name="email-outline" size={24} color="#ffffff80" />
                 <TextInput
                   style={styles.input}
-                  placeholder="E-mail ou @username"
+                  placeholder="E-mail"
                   placeholderTextColor="#ffffff80"
-                  value={identifier}
-                  onChangeText={setIdentifier}
+                  value={email}
+                  onChangeText={setEmail}
                   autoCapitalize="none"
-                  autoCorrect={false}
                   keyboardType="email-address"
                   returnKeyType="next"
                 />

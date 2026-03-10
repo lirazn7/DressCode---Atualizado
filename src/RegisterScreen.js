@@ -19,17 +19,36 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import db from './database/DatabaseInit';
 
+// Valida o formato do username: letras, números, . e _ (mín 3, máx 30)
+const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/;
+
 export default function RegisterScreen({ onBack }) {
-  const [nome, setNome]         = useState('');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading]   = useState(false);
+  const [nome, setNome]           = useState('');
+  const [username, setUsername]   = useState('');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading]     = useState(false);
+
+  const handleUsernameChange = (text) => {
+    // Remove caracteres inválidos em tempo real
+    const cleaned = text.replace(/[^a-zA-Z0-9._]/g, '');
+    setUsername(cleaned);
+  };
 
   const handleRegister = () => {
     // Validação de campos vazios
-    if (!nome.trim() || !email.trim() || !password.trim()) {
+    if (!nome.trim() || !username.trim() || !email.trim() || !password.trim()) {
       Alert.alert('Atenção', 'Por favor, preencha todos os campos.');
+      return;
+    }
+
+    // Validação do username
+    if (!usernameRegex.test(username.trim())) {
+      Alert.alert(
+        'Username inválido',
+        'O username deve ter entre 3 e 30 caracteres e pode conter apenas letras, números, ponto (.) e underline (_).'
+      );
       return;
     }
 
@@ -50,8 +69,8 @@ export default function RegisterScreen({ onBack }) {
 
     try {
       db.runSync(
-        'INSERT INTO users (nome, email, password) VALUES (?, ?, ?);',
-        [nome.trim(), email.trim().toLowerCase(), password]
+        'INSERT INTO users (nome, email, password, username) VALUES (?, ?, ?, ?);',
+        [nome.trim(), email.trim().toLowerCase(), password, username.trim().toLowerCase()]
       );
       setLoading(false);
       Alert.alert('Conta criada!', 'Sua conta DressCode foi criada com sucesso.', [
@@ -60,7 +79,11 @@ export default function RegisterScreen({ onBack }) {
     } catch (error) {
       setLoading(false);
       if (error.message && error.message.includes('UNIQUE')) {
-        Alert.alert('E-mail já cadastrado', 'Já existe uma conta com esse e-mail.');
+        if (error.message.toLowerCase().includes('username')) {
+          Alert.alert('Username indisponível', 'Esse @username já está em uso. Escolha outro.');
+        } else {
+          Alert.alert('E-mail já cadastrado', 'Já existe uma conta com esse e-mail.');
+        }
       } else {
         Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
         console.log('Erro no registro:', error);
@@ -110,6 +133,21 @@ export default function RegisterScreen({ onBack }) {
                   value={nome}
                   onChangeText={setNome}
                   autoCapitalize="words"
+                  returnKeyType="next"
+                />
+              </View>
+
+              {/* Username */}
+              <View style={styles.inputWrapper}>
+                <MaterialCommunityIcons name="at" size={24} color="#ffffff80" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="username (ex: joao.silva)"
+                  placeholderTextColor="#ffffff80"
+                  value={username}
+                  onChangeText={handleUsernameChange}
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   returnKeyType="next"
                 />
               </View>
@@ -192,17 +230,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: 30,
-    paddingTop: 120,
+    paddingTop: 100,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
     width: '100%',
   },
   logo: {
-    width: 150,
-    height: 150,
+    width: 130,
+    height: 130,
     marginBottom: 10,
   },
   subtitle: {

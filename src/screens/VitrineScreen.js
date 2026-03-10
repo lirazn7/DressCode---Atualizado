@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { 
-  StyleSheet, Text, View, TouchableOpacity, 
-  Animated, Easing, FlatList, StatusBar 
+import {
+  StyleSheet, Text, View, TouchableOpacity,
+  Animated, Easing, FlatList, StatusBar
 } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons'; 
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient'; // Importação necessária para o fade
 
 const menuItems = [
   { id: '1', icon: 'star-outline' },
@@ -12,29 +13,21 @@ const menuItems = [
   { id: '4', icon: 'account-circle-outline' },
 ];
 
-// Extrai primeiro nome e último sobrenome de um nome completo
-const getDisplayName = (nomeCompleto) => {
-  if (!nomeCompleto) return '';
-  const parts = nomeCompleto.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1]}`;
-};
-
 const NavButton = ({ item, isMenuOpen }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const glowAnim  = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
     Animated.parallel([
       Animated.spring(scaleAnim, { toValue: 1.2, useNativeDriver: false }),
-      Animated.timing(glowAnim,  { toValue: 1, duration: 200, useNativeDriver: false })
+      Animated.timing(glowAnim, { toValue: 1, duration: 200, useNativeDriver: false })
     ]).start();
   };
 
   const handlePressOut = () => {
     Animated.parallel([
       Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: false }),
-      Animated.timing(glowAnim,  { toValue: 0, duration: 200, useNativeDriver: false })
+      Animated.timing(glowAnim, { toValue: 0, duration: 200, useNativeDriver: false })
     ]).start();
   };
 
@@ -44,14 +37,14 @@ const NavButton = ({ item, isMenuOpen }) => {
   });
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       activeOpacity={1}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
       <Animated.View style={[
         styles.menuIconButton,
-        { 
+        {
           transform: [{ scale: scaleAnim }],
           shadowOpacity: shadowOpacity,
           shadowColor: '#ed85ff',
@@ -59,9 +52,9 @@ const NavButton = ({ item, isMenuOpen }) => {
           elevation: glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 10] })
         }
       ]}>
-        <MaterialCommunityIcons 
-          name={item.icon} 
-          size={26} 
+        <MaterialCommunityIcons
+          name={item.icon}
+          size={26}
           color={isMenuOpen ? "#ffffff" : "#ed85ff"}
         />
       </Animated.View>
@@ -74,7 +67,7 @@ export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
   const animValue = useRef(new Animated.Value(-65)).current;
 
   const toggleMenu = () => {
-    const toValue = isMenuOpen ? -70 : 0; 
+    const toValue = isMenuOpen ? -70 : 0;
 
     Animated.timing(animValue, {
       toValue: toValue,
@@ -87,36 +80,23 @@ export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
   };
 
   const renderMenuItem = ({ item }) => (
-    <NavButton item={item} />
+    <NavButton item={item} isMenuOpen={isMenuOpen} />
   );
-
-  // Monta o display do usuário: @username + Nome Sobrenome
-  const displayUsername = user?.username ? `@${user.username}` : null;
-  const displayName     = user?.nome ? getDisplayName(user.nome) : null;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Título no padrão da Logo DressCode */}
       <View style={styles.header}>
         <Text style={styles.vitrineTitle}>Vitrine</Text>
         {user && (
           <View style={styles.userInfo}>
-            {/* Linha 1: Olá, @username */}
-            <Text style={styles.greeting}>
-              Olá,{' '}
-              <Text style={styles.usernameHighlight}>
-                {displayUsername ?? (user.role === 'admin' ? '@admin' : 'Usuário')}
-              </Text>
+            <Text style={styles.userName}>
+              Olá, {user.nome || 'Usuário'}{' '}
               {user.role === 'admin' && (
                 <Text style={styles.adminBadge}> ADMIN </Text>
               )}
             </Text>
-            {/* Linha 2: Nome Sobrenome */}
-            {displayName && user.role !== 'admin' && (
-              <Text style={styles.fullName}>{displayName}</Text>
-            )}
           </View>
         )}
         {user?.role === 'admin' && (
@@ -131,7 +111,7 @@ export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
         <Text style={{ color: '#ffffff50' }}>Conteúdo da Vitrine...</Text>
       </View>
 
-      {/* BARRA LATERAL FINA */}
+      {/* BARRA LATERAL FINA (CONFORME O DESENHO) */}
       <Animated.View style={[styles.drawerContainer, { left: animValue }]}>
         <View style={styles.drawerInner}>
           <FlatList
@@ -149,10 +129,10 @@ export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
       {/* SETA DE PUXAR */}
       <Animated.View style={[styles.floatingArrowContainer, { left: Animated.add(animValue, 70) }]}>
         <TouchableOpacity style={styles.floatingArrow} onPress={toggleMenu}>
-          <MaterialCommunityIcons 
-            name={isMenuOpen ? "chevron-left" : "chevron-right"} 
-            size={30} 
-            color="#ed85ff" 
+          <MaterialCommunityIcons
+            name={isMenuOpen ? "chevron-left" : "chevron-right"}
+            size={30}
+            color="#ed85ff"
           />
         </TouchableOpacity>
       </Animated.View>
@@ -163,11 +143,11 @@ export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#621763' },
   header: { alignItems: 'center', marginTop: 60 },
-  vitrineTitle: { 
-    fontSize: 52, 
-    fontWeight: 'bold', 
-    color: '#ffffff', 
-    fontFamily: 'Times New Roman' 
+  vitrineTitle: {
+    fontSize: 52,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    fontFamily: 'serif'
   },
   userInfo: {
     marginTop: 6,
@@ -215,11 +195,12 @@ const styles = StyleSheet.create({
   },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
+  // Estilo da barra conforme o desenho no papel
   drawerContainer: {
     position: 'absolute',
-    top: '25%', 
+    top: '25%',
     width: 65,
-    height: '40%', 
+    height: '40%',
     zIndex: 10,
   },
   drawerInner: {

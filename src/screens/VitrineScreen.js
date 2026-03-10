@@ -61,7 +61,7 @@ const NavButton = ({ item, isMenuOpen }) => {
   );
 };
 
-export default function VitrineScreen({ onLogout }) {
+export default function VitrineScreen({ onLogout, user, onOpenAdmin }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // A barra agora é fina (70px), então ela só precisa sumir -70px para fechar
   const animValue = useRef(new Animated.Value(-65)).current;
@@ -90,6 +90,22 @@ export default function VitrineScreen({ onLogout }) {
       {/* Título no padrão da Logo DressCode */}
       <View style={styles.header}>
         <Text style={styles.vitrineTitle}>Vitrine</Text>
+        {user && (
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>
+              Olá, {user.nome || 'Usuário'}{' '}
+              {user.role === 'admin' && (
+                <Text style={styles.adminBadge}> ADMIN </Text>
+              )}
+            </Text>
+          </View>
+        )}
+        {user?.role === 'admin' && (
+          <TouchableOpacity style={styles.adminBtn} onPress={onOpenAdmin} activeOpacity={0.8}>
+            <MaterialCommunityIcons name="shield-account-outline" size={16} color="#2d1454" />
+            <Text style={styles.adminBtnText}>Painel Admin</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -133,6 +149,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold', 
     color: '#ffffff', 
     fontFamily: 'Times New Roman' 
+  },
+  userInfo: {
+    marginTop: 6,
+    alignItems: 'center',
+  },
+  userName: {
+    color: '#ffffff90',
+    fontSize: 14,
+  },
+  adminBadge: {
+    backgroundColor: '#ed85ff',
+    color: '#2d1454',
+    fontWeight: 'bold',
+    fontSize: 11,
+    borderRadius: 6,
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  adminBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ed85ff',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    marginTop: 12,
+    gap: 6,
+  },
+  adminBtnText: {
+    color: '#2d1454',
+    fontWeight: 'bold',
+    fontSize: 13,
   },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 

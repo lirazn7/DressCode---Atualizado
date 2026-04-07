@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../database/supabase';
 
@@ -24,6 +25,8 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
+
+  const { signIn } = useAuth();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -41,7 +44,6 @@ export default function LoginScreen({ navigation }) {
 
     try {
       // ── Buscar usuário na NUVEM (Supabase) ─────────────────────────
-      // O Supabase vai checar se existe alguém com esse email e senha exatos.
       const { data: result, error } = await supabase
         .from('users')
         .select('*')
@@ -56,22 +58,17 @@ export default function LoginScreen({ navigation }) {
       }
 
       if (result) {
-        // Agora pegamos a 'role' diretamente do banco de dados!
-        // Se a coluna role estiver vazia no banco, ele assume 'user' por padrão.
         const userObj = { ...result, role: result.role || 'user' };
-        
-        // Verifica se precisa definir username (primeiro acesso)
+
         if (!result.username) {
-          navigation.navigate('SetUsername', { user: userObj });
+          // Se não tem username, vamos ter que tratar o SetUsername de uma forma especial depois,
+          // mas por enquanto deixa passar chamando o signIn.
+          signIn(userObj); 
         } else {
-          // Salva a sessão localmente para não precisar logar de novo depois
-          await AsyncStorage.setItem('@dresscode_session', JSON.stringify(userObj));
-          
-          // Vai para a Vitrine levando os dados do usuário (se for admin, a Vitrine já vai saber!)
-          navigation.replace('Vitrine', { user: userObj });
+          // Avisa o contexto! O React vai ver que você logou e vai trocar o AuthStack pelo AppStack sozinho!
+          signIn(userObj); 
         }
       } else {
-        // Se result for null, as credenciais estão erradas
         Alert.alert('Acesso negado', 'E-mail ou senha incorretos.');
       }
     } catch (error) {

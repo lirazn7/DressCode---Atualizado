@@ -16,14 +16,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // IMPORTANTE
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../database/supabase';
 
-// ─── Credenciais de Admin ────────────────────────────────────────────────────
-const ADMIN_EMAIL    = 'admin@dresscode.com';
-const ADMIN_PASSWORD = 'Admin@2025';
-
-export default function LoginScreen({ navigation }) { // RECEBE NAVIGATION AQUI
+export default function LoginScreen({ navigation }) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -44,26 +40,14 @@ export default function LoginScreen({ navigation }) { // RECEBE NAVIGATION AQUI
     setLoading(true);
 
     try {
-      // ── 1. Verificar acesso de Admin ───────────────────────────────────
-      if (
-        email.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
-        password === ADMIN_PASSWORD
-      ) {
-        const adminObj = { id: 0, nome: 'Admin', email: ADMIN_EMAIL, role: 'admin' };
-        await AsyncStorage.setItem('@dresscode_session', JSON.stringify(adminObj));
-        setLoading(false);
-        // replace impede o usuário de voltar para o login
-        navigation.replace('Vitrine', { user: adminObj });
-        return;
-      }
-
-// ── 2. Buscar usuário na NUVEM (Supabase) ─────────────────────────
+      // ── Buscar usuário na NUVEM (Supabase) ─────────────────────────
+      // O Supabase vai checar se existe alguém com esse email e senha exatos.
       const { data: result, error } = await supabase
         .from('users')
         .select('*')
         .eq('email', email.trim().toLowerCase())
         .eq('password', password)
-        .maybeSingle(); // Traz 1 usuário se achar, ou "null" se a senha/email estiverem errados
+        .maybeSingle();
 
       setLoading(false);
 
@@ -72,16 +56,22 @@ export default function LoginScreen({ navigation }) { // RECEBE NAVIGATION AQUI
       }
 
       if (result) {
-        const userObj = { ...result, role: 'user' };
+        // Agora pegamos a 'role' diretamente do banco de dados!
+        // Se a coluna role estiver vazia no banco, ele assume 'user' por padrão.
+        const userObj = { ...result, role: result.role || 'user' };
         
-        // Verifica se precisa definir username
+        // Verifica se precisa definir username (primeiro acesso)
         if (!result.username) {
           navigation.navigate('SetUsername', { user: userObj });
         } else {
+          // Salva a sessão localmente para não precisar logar de novo depois
           await AsyncStorage.setItem('@dresscode_session', JSON.stringify(userObj));
+          
+          // Vai para a Vitrine levando os dados do usuário (se for admin, a Vitrine já vai saber!)
           navigation.replace('Vitrine', { user: userObj });
         }
       } else {
+        // Se result for null, as credenciais estão erradas
         Alert.alert('Acesso negado', 'E-mail ou senha incorretos.');
       }
     } catch (error) {
@@ -163,8 +153,8 @@ export default function LoginScreen({ navigation }) { // RECEBE NAVIGATION AQUI
               <View style={styles.footerContainer}>
                 {/* NAVEGAÇÃO PARA REGISTRO */}
                 <TouchableOpacity 
-                    style={styles.link} 
-                    onPress={() => navigation.navigate('Register')}
+                  style={styles.link} 
+                  onPress={() => navigation.navigate('Register')}
                 >
                   <Text style={styles.linkText}>
                     Não tem uma conta? <Text style={styles.boldText}>Registre-se</Text>

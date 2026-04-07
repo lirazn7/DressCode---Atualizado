@@ -15,9 +15,18 @@ Este projeto evoluiu de um protótipo com persistência local para uma aplicaç�
 
 ## 📱 Demonstração
 
-| Tela de Login | Feed (Vitrine) | Perfil | Criar Post |
-|---|---|---|---|
-| ![Login](./assets/screenshots/tela-login.jpg) | ![Vitrine](./assets/screenshots/tela-vitrine.jpg) | ![Perfil](./assets/screenshots/tela-perfil.jpg) | ![Post](./assets/screenshots/tela-criarpost.jpg) |
+<table>
+  <tr>
+    <td align="center"><b>Tela de Login</b></td>
+    <td align="center"><b>Feed (Vitrine)</b></td>
+    <td align="center"><b>Perfil do Usuário</b></td>
+  </tr>
+  <tr>
+    <td><img src="./assets/screenshots/tela-login.jpg" width="200"></td>
+    <td><img src="./assets/screenshots/tela-vitrine.jpg" width="200"></td>
+    <td><img src="./assets/screenshots/tela-perfil.jpg" width="200"></td>
+  </tr>
+</table>
 
 
 

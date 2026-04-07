@@ -2,6 +2,7 @@
 
 ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
 ![React Native](https://img.shields.io/badge/react_native-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![React Navigation](https://img.shields.io/badge/React_Navigation-7b1fa2?style=for-the-badge&logo=react-navigation&logoColor=white)
 ![GitHub repo size](https://img.shields.io/github/repo-size/lirazn7/DressCode---Atualizado?style=for-the-badge)
 ![GitHub language count](https://img.shields.io/github/languages/count/lirazn7/DressCode---Atualizado?style=for-the-badge)
 ![Expo](https://img.shields.io/badge/expo-000020?style=for-the-badge&logo=expo&logoColor=white)

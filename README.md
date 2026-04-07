@@ -20,12 +20,17 @@ Este projeto evoluiu de um protótipo com persistência local para uma aplicaç�
     <td align="center"><b>Tela de Login</b></td>
     <td align="center"><b>Feed (Vitrine)</b></td>
     <td align="center"><b>Perfil do Usuário</b></td>
+    <td align="center"><b>Criar Post</b></td>
   </tr>
   <tr>
-    <td><img width="200" height="500" alt="image" src="https://github.com/user-attachments/assets/f9c7a0c4-c291-4dab-b6e9-30cb19a610d5" />
+    <td><img width="150" height="380" alt="image" src="https://github.com/user-attachments/assets/f9c7a0c4-c291-4dab-b6e9-30cb19a610d5" />
 </td>
-    <td><img src="./assets/screenshots/tela-vitrine.jpg" width="200"></td>
-    <td><img src="./assets/screenshots/tela-perfil.jpg" width="200"></td>
+    <td><img width="150" height="380" alt="image" src="https://github.com/user-attachments/assets/9bb61d64-555a-4e56-8b76-e537edb655ed" />
+</td>
+    <td><img width="150" height="380" alt="image" src="https://github.com/user-attachments/assets/904d4856-30de-473d-83e0-bde2728b9bff" />
+</td>
+    <td><img width="150" height="380" alt="image" src="https://github.com/user-attachments/assets/fac9f8c2-2114-4859-908c-10bfcbc8c941" />
+></td>
   </tr>
 </table>
 

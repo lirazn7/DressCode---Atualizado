@@ -205,14 +205,20 @@ export default function VitrineScreen({ navigation }) {
         <View style={styles.drawerInner}>
           <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="star-outline" size={30} color="#ffffff90" /></TouchableOpacity>
           <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="creation" size={30} color="#ffffff90" /></TouchableOpacity>
-          <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="hanger" size={30} color="#ffffff90" /></TouchableOpacity>
+          
+          {/* BOTÃO DO CLOSET AQUI */}
+          <TouchableOpacity 
+            style={styles.drawerItem} 
+            onPress={() => { toggleMenu(); navigation.navigate('Closet', { user }); }}
+          >
+            <MaterialCommunityIcons name="hanger" size={30} color="#ffffff90" />
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.drawerItem}
             onPress={() => { toggleMenu(); navigation.navigate('Profile', { profileUser: user, currentUser: user }); }}
           >
-
             <MaterialCommunityIcons name="account-circle-outline" size={30} color="#ed85ff" />
-
           </TouchableOpacity>
 
           {/* NOVO: BOTÃO SECRETO DE ADMIN (SÓ APARECE PARA O ADMIN) */}
@@ -297,12 +303,11 @@ export default function VitrineScreen({ navigation }) {
   );
 }
 
-// ... Estilos permanecem os mesmos (omitidos por brevidade, mas você os mantém)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#5D1D7A' },
   scrollContent: { paddingHorizontal: 15, paddingTop: 60, paddingBottom: 100 },
   header: { alignItems: 'center', marginBottom: 30 },
-  vitrineTitle: { fontSize: 50, fontWeight: 'bold', color: '#fff' },
+  vitrineTitle: { fontSize: 50, fontWeight: 'bold', color: '#fff' , fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif'},
   greeting: { color: '#ed85ff', fontSize: 18 },
   usernameHighlight: { fontWeight: 'bold' },
   drawerContainer: { position: 'absolute', top: height * 0.25, height: height * 0.5, flexDirection: 'row', alignItems: 'center', zIndex: 100 },

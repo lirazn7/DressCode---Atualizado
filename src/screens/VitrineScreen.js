@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import PostCard from '../components/PostCard';
 import {
   StyleSheet, Text, View, TouchableOpacity, Animated, Easing,
   FlatList, StatusBar, Image, Dimensions, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform
@@ -179,18 +180,11 @@ export default function VitrineScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         columnWrapperStyle={{ justifyContent: 'space-between' }}
         renderItem={({ item, index }) => (
-          <TouchableOpacity onPress={() => setSelectedPost(item)} style={[styles.postCard, { marginTop: index % 2 === 0 ? 0 : 25 }]}>
-            <Image source={{ uri: item.imageuri }} style={styles.postImage} />
-            <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.postOverlay}>
-              <Text style={styles.postUsername}>@{item.username}</Text>
-              <View style={styles.miniStatsRow}>
-                <MaterialCommunityIcons name="heart" size={12} color={item.isLiked ? "#ed85ff" : "#fff"} />
-                <Text style={styles.miniStatText}>{item.totalLikes}</Text>
-                <MaterialCommunityIcons name="comment" size={12} color="#fff" style={{ marginLeft: 8 }} />
-                <Text style={styles.miniStatText}>{item.totalComments}</Text>
-              </View>
-            </LinearGradient>
-          </TouchableOpacity>
+          <PostCard
+            post={item}
+            onPress={() => setSelectedPost(item)}
+            customStyle={{ marginTop: index % 2 === 0 ? 0 : 25 }}
+          />
         )}
         ListHeaderComponent={
           <View style={styles.header}>
@@ -205,15 +199,15 @@ export default function VitrineScreen({ navigation }) {
         <View style={styles.drawerInner}>
           <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="star-outline" size={30} color="#ffffff90" /></TouchableOpacity>
           <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="creation" size={30} color="#ffffff90" /></TouchableOpacity>
-          
+
           {/* BOTÃO DO CLOSET AQUI */}
-          <TouchableOpacity 
-            style={styles.drawerItem} 
+          <TouchableOpacity
+            style={styles.drawerItem}
             onPress={() => { toggleMenu(); navigation.navigate('Closet', { user }); }}
           >
             <MaterialCommunityIcons name="hanger" size={30} color="#ffffff90" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.drawerItem}
             onPress={() => { toggleMenu(); navigation.navigate('Profile', { profileUser: user, currentUser: user }); }}
@@ -307,7 +301,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#5D1D7A' },
   scrollContent: { paddingHorizontal: 15, paddingTop: 60, paddingBottom: 100 },
   header: { alignItems: 'center', marginBottom: 30 },
-  vitrineTitle: { fontSize: 50, fontWeight: 'bold', color: '#fff' , fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif'},
+  vitrineTitle: { fontSize: 50, fontWeight: 'bold', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif' },
   greeting: { color: '#ed85ff', fontSize: 18 },
   usernameHighlight: { fontWeight: 'bold' },
   drawerContainer: { position: 'absolute', top: height * 0.25, height: height * 0.5, flexDirection: 'row', alignItems: 'center', zIndex: 100 },

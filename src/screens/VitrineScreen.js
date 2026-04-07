@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import PostCard from '../components/PostCard';
+import { useAuth } from '../contexts/AuthContext';
 import {
   StyleSheet, Text, View, TouchableOpacity, Animated, Easing,
   FlatList, StatusBar, Image, Dimensions, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform
@@ -15,9 +16,8 @@ const { width, height } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 45) / 2;
 
 export default function VitrineScreen({ navigation }) {
-  const route = useRoute();
   const isFocused = useIsFocused();
-  const user = route.params?.user;
+  const { user, signOut } = useAuth();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -227,7 +227,7 @@ export default function VitrineScreen({ navigation }) {
           )}
 
           <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.drawerItem} onPress={() => navigation.replace('Login')}>
+          <TouchableOpacity style={styles.drawerItem} onPress={() => { signOut(); navigation.replace('Login'); }}>
             <MaterialCommunityIcons name="logout" size={30} color="#ffffff90" />
           </TouchableOpacity>
         </View>

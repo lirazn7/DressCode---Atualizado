@@ -8,7 +8,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useIsFocused } from '@react-navigation/native';
-import { getPosts, toggleLike } from '../services/postService';
+import { getPosts, toggleLike, toggleFollow, getComments, addComment } from '../services/postService';
 // DB AGORA É SUPABASE
 import { supabase } from '../database/supabase';
 
@@ -51,7 +51,7 @@ export default function VitrineScreen({ navigation }) {
       const updated = formattedPosts.find(p => p.id === selectedPost.id);
       if (updated) setSelectedPost(updated);
     }
-    
+
     setLoading(false);
   };
 
@@ -67,47 +67,22 @@ export default function VitrineScreen({ navigation }) {
 
   // 4. LÓGICA DE SEGUIR NA NUVEM
   const handleFollow = async (targetId) => {
-    try {
-      const { data: existingFollow } = await supabase
-        .from('followers')
-        .select('id')
-        .eq('followerid', user.id)
-        .eq('followingid', targetId)
-        .maybeSingle();
-
-      if (existingFollow) {
-        await supabase.from('followers').delete().eq('id', existingFollow.id);
-      } else {
-        await supabase.from('followers').insert([{ followerid: user.id, followingid: targetId }]);
-      }
-      fetchPosts();
-    } catch (error) {
-      console.error('Erro ao seguir:', error);
-    }
+    const sucesso = await toggleFollow(user.id, targetId);
+    if (sucesso) fetchPosts();
   };
 
   // 5. BUSCAR COMENTÁRIOS
-  const openComments = async (postId) => {
-    const { data, error } = await supabase
-      .from('comments')
-      .select('*, users(username)')
-      .eq('postid', postId)
-      .order('id', { ascending: true });
-
-    if (!error) {
-      const formattedComments = data.map(c => ({ ...c, username: c.users?.username }));
-      setCommentList(formattedComments);
-      setShowComments(true);
-    }
+  const handleOpenComments = async (postId) => {
+    const formatComments = await getComments(postId);
+    setCommentList(formatComments);
+    setShowComments(true);
   };
 
-  const postComment = async () => {
+  const handlePostComment = async () => {
     if (!newComment.trim()) return;
-    const { error } = await supabase
-      .from('comments')
-      .insert([{ userid: user.id, postid: selectedPost.id, texto: newComment }]);
 
-    if (!error) {
+    const sucesso = await addComment(user.id, selectedPost.id, newComment);
+    if (sucesso) {
       setNewComment('');
       fetchPosts();
       setShowComments(false);
@@ -209,7 +184,7 @@ export default function VitrineScreen({ navigation }) {
                 <TouchableOpacity onPress={() => handleLike(selectedPost.id)}>
                   <MaterialCommunityIcons name={selectedPost.isLiked ? "heart" : "heart-outline"} size={32} color={selectedPost.isLiked ? "#ed85ff" : "#fff"} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => openComments(selectedPost.id)}>
+                <TouchableOpacity onPress={() => handleOpenComments(selectedPost.id)}>
                   <MaterialCommunityIcons name="comment-outline" size={30} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -239,7 +214,9 @@ export default function VitrineScreen({ navigation }) {
             )} />
             <View style={styles.commentInputArea}>
               <TextInput style={styles.input} placeholder="Comentar..." placeholderTextColor="#aaa" value={newComment} onChangeText={setNewComment} />
-              <TouchableOpacity onPress={postComment}><MaterialCommunityIcons name="send" size={24} color="#ed85ff" /></TouchableOpacity>
+              <TouchableOpacity onPress={handlePostComment}>
+                <MaterialCommunityIcons name="send" size={24} color="#ed85ff" />
+              </TouchableOpacity>
             </View>
           </KeyboardAvoidingView>
         </View>

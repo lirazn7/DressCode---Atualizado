@@ -60,3 +60,57 @@ export const toggleLike = async (userId, postId) => {
     return false; // Falha
   }
 };
+
+export const toggleFollow = async (followerId, followingId) => {
+  try {
+    const { data: existingFollow } = await supabase
+      .from('followers')
+      .select('id')
+      .eq('followerid', followerId)
+      .eq('followingid', followingId)
+      .maybeSingle();
+
+    if (existingFollow) {
+      await supabase.from('followers').delete().eq('id', existingFollow.id);
+    } else {
+      await supabase.from('followers').insert([{ followerid: followerId, followingid: followingId }]);
+    }
+    return true;
+  } catch (error) {
+    console.error('Erro no postService (toggleFollow):', error);
+    return false;
+  }
+};
+
+// Função para buscar comentários de um post
+export const getComments = async (postId) => {
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*, users(username)')
+      .eq('postid', postId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    return data.map(c => ({ ...c, username: c.users?.username }));
+  } catch (error) {
+    console.error('Erro no postService (getComments):', error);
+    return [];
+  }
+};
+
+// Função para enviar um comentário
+export const addComment = async (userId, postId, texto) => {
+  try {
+    const { error } = await supabase
+      .from('comments')
+      .insert([{ userid: userId, postid: postId, texto }]);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Erro no postService (addComment):', error);
+    return false;
+  }
+};

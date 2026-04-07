@@ -12,6 +12,7 @@ import VitrineScreen from './src/screens/VitrineScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CreatePostScreen from './src/screens/CreatePostScreen';
 import AdminScreen from './src/screens/AdminScreen';
+import ClosetScreen from './src/screens/ClosetScreen';
 
 const Stack = createStackNavigator();
 
@@ -27,6 +28,7 @@ export default function App() {
         <Stack.Screen name="Vitrine" component={VitrineScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+        <Stack.Screen name="Closet" component={ClosetScreen} />
         
         {/* 2. ADICIONADO: A rota para a tela de Admin agora existe para o sistema */}
         <Stack.Screen name="Admin" component={AdminScreen} />

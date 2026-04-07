@@ -8,7 +8,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRoute, useIsFocused } from '@react-navigation/native';
-
+import { getPosts, toggleLike } from '../services/postService';
 // DB AGORA É SUPABASE
 import { supabase } from '../database/supabase';
 
@@ -44,73 +44,24 @@ export default function VitrineScreen({ navigation }) {
   const fetchPosts = async () => {
     if (!user?.id) { setLoading(false); return; }
 
-    try {
-      // Buscamos posts, dados do autor, likes e comentários de uma vez
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          users (username, nome),
-          likes (userid),
-          comments (id)
-        `)
-        .order('id', { ascending: false });
+    const formattedPosts = await getPosts(user.id);
+    setPosts(formattedPosts);
 
-      if (error) throw error;
-
-      // Pegamos quem o usuário atual segue para marcar o botão "Seguindo"
-      const { data: followingData } = await supabase
-        .from('followers')
-        .select('followingid')
-        .eq('followerid', user.id);
-
-      const followingIds = followingData?.map(f => f.followingid) || [];
-
-      // Formatamos os dados para manter a compatibilidade com sua interface
-      const formattedPosts = data.map(post => ({
-        ...post,
-        username: post.users?.username,
-        nome: post.users?.nome,
-        totalLikes: post.likes?.length || 0,
-        totalComments: post.comments?.length || 0,
-        isLiked: post.likes?.some(l => l.userid === user.id),
-        isFollowing: followingIds.includes(post.userid)
-      }));
-
-      setPosts(formattedPosts);
-
-      // Atualiza o modal se ele estiver aberto
-      if (selectedPost) {
-        const updated = formattedPosts.find(p => p.id === selectedPost.id);
-        if (updated) setSelectedPost(updated);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar posts:', error);
-    } finally {
-      setLoading(false);
+    if (selectedPost) {
+      const updated = formattedPosts.find(p => p.id === selectedPost.id);
+      if (updated) setSelectedPost(updated);
     }
+    
+    setLoading(false);
   };
 
   useEffect(() => { if (isFocused) fetchPosts(); }, [isFocused, user?.id]);
 
   // 3. LÓGICA DE LIKE NA NUVEM
   const handleLike = async (postId) => {
-    try {
-      const { data: existingLike } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('userid', user.id)
-        .eq('postid', postId)
-        .maybeSingle();
-
-      if (existingLike) {
-        await supabase.from('likes').delete().eq('id', existingLike.id);
-      } else {
-        await supabase.from('likes').insert([{ userid: user.id, postid: postId }]);
-      }
-      fetchPosts();
-    } catch (error) {
-      console.error('Erro no like:', error);
+    const sucesso = await toggleLike(user.id, postId);
+    if (sucesso) {
+      fetchPosts(); // Recarrega a tela se deu certo
     }
   };
 

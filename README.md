@@ -17,9 +17,9 @@ Este projeto evoluiu de um protótipo com persistência local para uma aplicaç�
 
 | Tela de Login | Feed (Vitrine) | Perfil | Criar Post |
 |---|---|---|---|
-| ![Login](https://via.placeholder.com/150) | ![Vitrine](https://via.placeholder.com/150) | ![Perfil](https://via.placeholder.com/150) | ![Post](https://via.placeholder.com/150) |
+| ![Login](./assets/screenshots/tela-login.jpg) | ![Vitrine](./assets/screenshots/tela-vitrine.jpg) | ![Perfil](./assets/screenshots/tela-perfil.jpg) | ![Post](./assets/screenshots/tela-criarpost.jpg) |
 
-*
+
 
 ---
 

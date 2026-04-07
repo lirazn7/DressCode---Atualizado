@@ -22,7 +22,8 @@ Este projeto evoluiu de um protótipo com persistência local para uma aplicaç�
     <td align="center"><b>Perfil do Usuário</b></td>
   </tr>
   <tr>
-    <td><img src="./assets/screenshots/tela-login.jpg" width="200"></td>
+    <td><img width="720" height="1600" alt="image" src="https://github.com/user-attachments/assets/f9c7a0c4-c291-4dab-b6e9-30cb19a610d5" />
+</td>
     <td><img src="./assets/screenshots/tela-vitrine.jpg" width="200"></td>
     <td><img src="./assets/screenshots/tela-perfil.jpg" width="200"></td>
   </tr>

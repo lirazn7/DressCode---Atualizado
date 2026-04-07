@@ -19,7 +19,7 @@ Este projeto evoluiu de um protótipo com persistência local para uma aplicaç�
 |---|---|---|---|
 | ![Login](https://via.placeholder.com/150) | ![Vitrine](https://via.placeholder.com/150) | ![Perfil](https://via.placeholder.com/150) | ![Post](https://via.placeholder.com/150) |
 
-> *Nota: Substitua as imagens acima por prints reais do seu aplicativo para um perfil mais profissional.*
+*
 
 ---
 

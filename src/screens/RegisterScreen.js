@@ -77,7 +77,7 @@ export default function RegisterScreen({ navigation }) {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Se der erro na imagem, certifique-se que o caminho está correto: '../logo-def-dresscode.png' ou '../../logo...' */}
-            <Image source={require('../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
+            <Image source={require('../../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
             <Text style={styles.subtitle}>Crie sua conta</Text>
             
             <View style={styles.form}>

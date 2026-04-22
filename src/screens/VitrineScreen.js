@@ -153,7 +153,7 @@ export default function VitrineScreen({ navigation }) {
           )}
 
           <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.drawerItem} onPress={() => { signOut(); navigation.replace('Login'); }}>
+          <TouchableOpacity style={styles.drawerItem} onPress={() => { toggleMenu(); signOut(); }}>
             <MaterialCommunityIcons name="logout" size={30} color="#ffffff90" />
           </TouchableOpacity>
         </View>

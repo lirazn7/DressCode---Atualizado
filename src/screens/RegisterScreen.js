@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 // 1. TROCA DO DB LOCAL PARA O SUPABASE
-import { supabase } from './database/supabase'; 
+import { supabase } from '../database/supabase'; 
 
 const usernameRegex = /^[a-zA-Z0-9._]{3,30}$/;
 

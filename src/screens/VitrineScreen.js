@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
-  FlatList, StatusBar, Image, Dimensions, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform
+  FlatList, StatusBar, Image, Dimensions, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Pressable
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,8 +25,11 @@ export default function VitrineScreen({ navigation }) {
   const [commentList, setCommentList] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [activePostId, setActivePostId] = useState(null);
+  
+  // NOVO: Estado para guardar a foto que será expandida ao segurar o dedo
+  const [fullImage, setFullImage] = useState(null); 
 
-  // ── BUSCA DE POSTS NA NUVEM (COM TRAVA DE SEGURANÇA) ──
+  // ── BUSCA DE POSTS NA NUVEM ──
   const fetchPosts = async () => {
     try {
       if (!user?.id) { 
@@ -39,21 +43,19 @@ export default function VitrineScreen({ navigation }) {
     } catch (error) {
       console.log("Erro ao buscar posts da Vitrine:", error);
     } finally {
-      // O finally garante que o loading da tela vai sumir de qualquer jeito
       setLoading(false); 
     }
   };
 
   useEffect(() => { 
     if (isFocused) {
-      setLoading(true); // Garante que mostre o loading ao entrar na tela
+      setLoading(true);
       fetchPosts(); 
     }
   }, [isFocused, user?.id]);
 
-  // ── LÓGICA DE LIKE NA NUVEM (CORRIGIDO) ──
+  // ── LÓGICA DE LIKE NA NUVEM ──
   const handleLike = async (postId) => {
-    // Atualização otimista: Muda a cor e a contagem de likes instantaneamente
     setPosts(currentPosts => 
       currentPosts.map(p => {
         if (p.id === postId) {
@@ -70,11 +72,8 @@ export default function VitrineScreen({ navigation }) {
       })
     );
 
-    // Salva no banco de dados
     const sucesso = await toggleLike(user.id, postId);
-    if (sucesso) {
-      fetchPosts(); // Sincroniza
-    }
+    if (sucesso) fetchPosts(); 
   };
 
   // ── LÓGICA DE SEGUIR NA NUVEM ──
@@ -103,9 +102,14 @@ export default function VitrineScreen({ navigation }) {
     }
   };
 
-  // ── RENDERIZAÇÃO DE CADA FOTO (TELA CHEIA) ──
+  // ── RENDERIZAÇÃO DE CADA FOTO ──
   const renderPost = ({ item }) => (
-    <View style={styles.postContainer}>
+    // NOVO: Transformamos a View em Pressable para detectar o toque longo
+    <Pressable 
+      style={styles.postContainer}
+      onLongPress={() => setFullImage(item.imageuri)}
+      delayLongPress={400} // Segurar por 400 milissegundos aciona a foto inteira
+    >
       <Image 
         source={{ uri: item.imageuri }} 
         style={styles.backgroundImage} 
@@ -117,7 +121,6 @@ export default function VitrineScreen({ navigation }) {
       />
 
       <View style={styles.contentOverlay}>
-        {/* Textos e Username */}
         <View style={styles.textContainer}>
           <TouchableOpacity 
             style={styles.userRow}
@@ -139,7 +142,6 @@ export default function VitrineScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* Botões Flutuantes */}
         <View style={styles.interactionPanel}>
           <TouchableOpacity style={styles.iconButton} onPress={() => handleLike(item.id)}>
             <MaterialCommunityIcons 
@@ -160,27 +162,22 @@ export default function VitrineScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 
-  // ── LOADING ──
   if (loading) return (
     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
       <ActivityIndicator size="large" color="#ddb7ff" />
     </View>
   );
 
-  // ── TELA VAZIA (Sem Posts) ──
   if (!loading && posts.length === 0) return (
     <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
       <MaterialCommunityIcons name="camera-off" size={60} color="#978d9d" />
       <Text style={{ color: '#978d9d', marginTop: 15, fontSize: 16 }}>Nenhum post encontrado.</Text>
-      
       <TouchableOpacity style={[styles.fab, { position: 'relative', bottom: 0, marginTop: 30 }]} onPress={() => navigation.navigate('CreatePost', { user })}>
         <MaterialCommunityIcons name="plus" size={32} color="#4a0080" />
       </TouchableOpacity>
-      
-      {/* Botão de Logout para não ficar preso */}
       <TouchableOpacity style={{ marginTop: 40 }} onPress={signOut}>
         <Text style={{ color: '#ddb7ff', textDecorationLine: 'underline' }}>Sair</Text>
       </TouchableOpacity>
@@ -191,7 +188,6 @@ export default function VitrineScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* FEED DE ROLAGEM */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id.toString()}
@@ -201,7 +197,6 @@ export default function VitrineScreen({ navigation }) {
         bounces={false}
       />
 
-      {/* TOP BAR */}
       <View style={styles.topBar}>
         <TouchableOpacity 
           style={styles.avatarContainer}
@@ -209,34 +204,27 @@ export default function VitrineScreen({ navigation }) {
         >
           <MaterialCommunityIcons name="account-circle" size={32} color="#ddb7ff" />
         </TouchableOpacity>
-        
         <Text style={styles.headerTitle}>VITRINE</Text>
-        
         <TouchableOpacity onPress={signOut}>
           <MaterialCommunityIcons name="logout" size={26} color="#978d9d" />
         </TouchableOpacity>
       </View>
 
-      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreatePost', { user })}>
         <MaterialCommunityIcons name="plus" size={32} color="#4a0080" />
       </TouchableOpacity>
 
-      {/* BOTTOM NAV BAR */}
       <View style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navButtonActive}>
             <MaterialCommunityIcons name="view-grid-outline" size={24} color="#ddb7ff" />
           </TouchableOpacity>
-          
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Closet', { user })}>
             <MaterialCommunityIcons name="hanger" size={24} color="#978d9d" />
           </TouchableOpacity>
-          
           <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}>
             <MaterialCommunityIcons name="account-outline" size={24} color="#978d9d" />
           </TouchableOpacity>
-
           {user?.role === 'admin' && (
             <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Admin')}>
               <MaterialCommunityIcons name="shield-check" size={24} color="#ba7ef4" />
@@ -245,18 +233,27 @@ export default function VitrineScreen({ navigation }) {
         </View>
       </View>
 
+      {/* ── NOVO: MODAL DA FOTO EM TAMANHO REAL ── */}
+      <Modal visible={!!fullImage} animationType="fade" transparent>
+        <Pressable style={styles.fullImageOverlay} onPress={() => setFullImage(null)}>
+          <Image 
+            source={{ uri: fullImage }} 
+            style={styles.fullImage} 
+            resizeMode="contain" // Isso garante que a foto apareça inteira, sem cortar as beiradas
+          />
+        </Pressable>
+      </Modal>
+
       {/* MODAL COMENTÁRIOS */}
       <Modal visible={showComments} animationType="slide" transparent>
         <View style={styles.commentOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.commentContent}>
-            
             <View style={styles.commentHeader}>
               <Text style={styles.commentTitle}>Comentários</Text>
               <TouchableOpacity onPress={() => setShowComments(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
               </TouchableOpacity>
             </View>
-
             <FlatList 
               data={commentList} 
               keyExtractor={(item) => item.id.toString()} 
@@ -268,7 +265,6 @@ export default function VitrineScreen({ navigation }) {
               )} 
               contentContainerStyle={{ paddingBottom: 20 }}
             />
-            
             <View style={styles.commentInputArea}>
               <TextInput 
                 style={styles.input} 
@@ -281,7 +277,6 @@ export default function VitrineScreen({ navigation }) {
                 <MaterialCommunityIcons name="send" size={20} color="#4a0080" />
               </TouchableOpacity>
             </View>
-
           </KeyboardAvoidingView>
         </View>
       </Modal>
@@ -314,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: 20,
-    paddingBottom: 180,
+    paddingBottom: 180, // Mantido do último ajuste!
   },
   textContainer: {
     flex: 1,
@@ -357,8 +352,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(221, 183, 255, 0.1)',
     borderWidth: 1,
     borderRadius: 30,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 5,
     alignItems: 'center',
     marginBottom: 10,
   },
@@ -503,5 +498,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
+  },
+  
+  /* ── NOVO: ESTILOS DA FOTO EM TAMANHO REAL ── */
+  fullImageOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)', // Fundo bem escuro pra focar na imagem
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '95%',
+    height: '80%', // Deixa uma margem em cima e embaixo
+    borderRadius: 20,
   }
 });

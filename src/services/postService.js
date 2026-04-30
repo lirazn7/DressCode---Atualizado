@@ -22,20 +22,20 @@ export const getPosts = async (userId) => {
 
     const followingIds = followingData?.map(f => f.followingid) || [];
 
-    // Formata os dados para a tela
+    // Formata os dados para a tela (Nomes Corrigidos!)
     return data.map(post => ({
       ...post,
       username: post.users?.username,
       nome: post.users?.nome,
-      totalLikes: post.likes?.length || 0,
-      totalComments: post.comments?.length || 0,
+      likes_count: post.likes?.length || 0,       // <-- MUDOU AQUI
+      comments_count: post.comments?.length || 0, // <-- MUDOU AQUI
       isLiked: post.likes?.some(l => l.userid === userId),
       isFollowing: followingIds.includes(post.userid)
     }));
 
   } catch (error) {
     console.error('Erro no postService (getPosts):', error);
-    return []; // Retorna lista vazia em caso de erro para não quebrar a tela
+    return []; 
   }
 };
 
@@ -54,10 +54,10 @@ export const toggleLike = async (userId, postId) => {
     } else {
       await supabase.from('likes').insert([{ userid: userId, postid: postId }]);
     }
-    return true; // Sucesso
+    return true; 
   } catch (error) {
     console.error('Erro no postService (toggleLike):', error);
-    return false; // Falha
+    return false; 
   }
 };
 

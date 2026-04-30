@@ -23,17 +23,41 @@ export default function VitrineScreen({ navigation }) {
   const [showComments, setShowComments] = useState(false);
   const [commentList, setCommentList] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [activePostId, setActivePostId] = useState(null); // Para saber em qual post estamos comentando
+  const [activePostId, setActivePostId] = useState(null);
 
-// ── LÓGICA DE LIKE NA NUVEM ──
+  // ── BUSCA DE POSTS NA NUVEM (COM TRAVA DE SEGURANÇA) ──
+  const fetchPosts = async () => {
+    try {
+      if (!user?.id) { 
+        setLoading(false); 
+        return; 
+      }
+
+      const formattedPosts = await getPosts(user.id);
+      setPosts(formattedPosts || []); 
+      
+    } catch (error) {
+      console.log("Erro ao buscar posts da Vitrine:", error);
+    } finally {
+      // O finally garante que o loading da tela vai sumir de qualquer jeito
+      setLoading(false); 
+    }
+  };
+
+  useEffect(() => { 
+    if (isFocused) {
+      setLoading(true); // Garante que mostre o loading ao entrar na tela
+      fetchPosts(); 
+    }
+  }, [isFocused, user?.id]);
+
+  // ── LÓGICA DE LIKE NA NUVEM (CORRIGIDO) ──
   const handleLike = async (postId) => {
-    // Atualização otimista: Muda a cor do coração E o número na hora!
+    // Atualização otimista: Muda a cor e a contagem de likes instantaneamente
     setPosts(currentPosts => 
       currentPosts.map(p => {
         if (p.id === postId) {
-          // Transforma o texto em número (se for nulo, vira 0)
           const currentCount = parseInt(p.likes_count || 0, 10);
-          // Se já tinha curtido, tira 1. Se não tinha, soma 1.
           const newCount = p.isLiked ? currentCount - 1 : currentCount + 1;
           
           return { 
@@ -46,13 +70,13 @@ export default function VitrineScreen({ navigation }) {
       })
     );
 
-    // Manda para o banco de dados em segundo plano
+    // Salva no banco de dados
     const sucesso = await toggleLike(user.id, postId);
     if (sucesso) {
-      // Opcional: recarregar do banco para garantir sincronia
-      fetchPosts(); 
+      fetchPosts(); // Sincroniza
     }
   };
+
   // ── LÓGICA DE SEGUIR NA NUVEM ──
   const handleFollow = async (targetId) => {
     const sucesso = await toggleFollow(user.id, targetId);
@@ -73,7 +97,6 @@ export default function VitrineScreen({ navigation }) {
     const sucesso = await addComment(user.id, activePostId, newComment);
     if (sucesso) {
       setNewComment('');
-      // Recarrega os comentários e o post no fundo
       const formatComments = await getComments(activePostId);
       setCommentList(formatComments);
       fetchPosts(); 
@@ -83,27 +106,24 @@ export default function VitrineScreen({ navigation }) {
   // ── RENDERIZAÇÃO DE CADA FOTO (TELA CHEIA) ──
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
-      {/* Imagem de Fundo (Se a imagem falhar, a tela fica preta) */}
       <Image 
         source={{ uri: item.imageuri }} 
         style={styles.backgroundImage} 
       />
       
-      {/* Degradê escuro para dar leitura ao texto */}
       <LinearGradient
         colors={['transparent', 'rgba(19, 19, 19, 0.4)', '#131313']}
         style={styles.gradientOverlay}
       />
 
       <View style={styles.contentOverlay}>
-        {/* LADO ESQUERDO: TEXTOS E USERNAME */}
+        {/* Textos e Username */}
         <View style={styles.textContainer}>
           <TouchableOpacity 
             style={styles.userRow}
             onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome }, currentUser: user })}
           >
             <Text style={styles.postUsername}>@{item.username}</Text>
-            {/* Botão de Seguir (Se não for o próprio usuário) */}
             {item.userid !== user?.id && (
               <TouchableOpacity 
                 style={[styles.followBtn, item.isFollowing && styles.followingBtn]} 
@@ -119,7 +139,7 @@ export default function VitrineScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* LADO DIREITO: BOTÕES FLUTUANTES */}
+        {/* Botões Flutuantes */}
         <View style={styles.interactionPanel}>
           <TouchableOpacity style={styles.iconButton} onPress={() => handleLike(item.id)}>
             <MaterialCommunityIcons 
@@ -127,7 +147,6 @@ export default function VitrineScreen({ navigation }) {
               size={32} 
               color={item.isLiked ? "#ddb7ff" : "#e5e2e1"} 
             />
-            {/* Se você tiver a contagem de likes no seu getPosts, coloque aqui: */}
             <Text style={styles.iconText}>{item.likes_count || '0'}</Text>
           </TouchableOpacity>
 
@@ -151,21 +170,38 @@ export default function VitrineScreen({ navigation }) {
     </View>
   );
 
+  // ── TELA VAZIA (Sem Posts) ──
+  if (!loading && posts.length === 0) return (
+    <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <MaterialCommunityIcons name="camera-off" size={60} color="#978d9d" />
+      <Text style={{ color: '#978d9d', marginTop: 15, fontSize: 16 }}>Nenhum post encontrado.</Text>
+      
+      <TouchableOpacity style={[styles.fab, { position: 'relative', bottom: 0, marginTop: 30 }]} onPress={() => navigation.navigate('CreatePost', { user })}>
+        <MaterialCommunityIcons name="plus" size={32} color="#4a0080" />
+      </TouchableOpacity>
+      
+      {/* Botão de Logout para não ficar preso */}
+      <TouchableOpacity style={{ marginTop: 40 }} onPress={signOut}>
+        <Text style={{ color: '#ddb7ff', textDecorationLine: 'underline' }}>Sair</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* ── FEED DE ROLAGEM ── */}
+      {/* FEED DE ROLAGEM */}
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderPost}
-        pagingEnabled // O "pulo" entre os posts
+        pagingEnabled
         showsVerticalScrollIndicator={false}
         bounces={false}
       />
 
-      {/* ── TOP BAR (Header) ── */}
+      {/* TOP BAR */}
       <View style={styles.topBar}>
         <TouchableOpacity 
           style={styles.avatarContainer}
@@ -181,12 +217,12 @@ export default function VitrineScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* ── FAB (Botão Add Post) ── */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreatePost', { user })}>
         <MaterialCommunityIcons name="plus" size={32} color="#4a0080" />
       </TouchableOpacity>
 
-      {/* ── BOTTOM NAV BAR ── */}
+      {/* BOTTOM NAV BAR */}
       <View style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navButtonActive}>
@@ -201,7 +237,6 @@ export default function VitrineScreen({ navigation }) {
             <MaterialCommunityIcons name="account-outline" size={24} color="#978d9d" />
           </TouchableOpacity>
 
-          {/* BOTÃO SECRETO DE ADMIN */}
           {user?.role === 'admin' && (
             <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Admin')}>
               <MaterialCommunityIcons name="shield-check" size={24} color="#ba7ef4" />
@@ -210,7 +245,7 @@ export default function VitrineScreen({ navigation }) {
         </View>
       </View>
 
-      {/* ── MODAL DE COMENTÁRIOS (Atualizado para o tema Dark) ── */}
+      {/* MODAL COMENTÁRIOS */}
       <Modal visible={showComments} animationType="slide" transparent>
         <View style={styles.commentOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.commentContent}>
@@ -279,7 +314,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     paddingHorizontal: 20,
-    paddingBottom: 110, // Abre espaço para a navbar
+    paddingBottom: 180,
   },
   textContainer: {
     flex: 1,
@@ -322,8 +357,8 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(221, 183, 255, 0.1)',
     borderWidth: 1,
     borderRadius: 30,
-    paddingVertical: 15,
-    paddingHorizontal: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
     marginBottom: 10,
   },
@@ -337,7 +372,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
-  // ── TOP BAR ──
   topBar: {
     position: 'absolute',
     top: 0,
@@ -362,7 +396,6 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     fontStyle: 'italic',
   },
-  // ── FAB ──
   fab: {
     position: 'absolute',
     bottom: 110,
@@ -379,7 +412,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 10,
   },
-  // ── BOTTOM NAV ──
   bottomNavContainer: {
     position: 'absolute',
     bottom: 30,
@@ -407,7 +439,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(123, 65, 179, 0.2)',
   },
-  // ── MODAL COMENTÁRIOS ──
   commentOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

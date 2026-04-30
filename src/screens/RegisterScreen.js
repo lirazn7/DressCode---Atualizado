@@ -71,67 +71,207 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#801C91', '#621763', '#350238']} style={styles.gradient}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" />
+      
+      {/* Fundo simulando o Ambient Glow */}
+      <LinearGradient
+        colors={['#131313', '#2c0050', '#131313']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+        opacity={0.4}
+      />
+
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            {/* Se der erro na imagem, certifique-se que o caminho está correto: '../logo-def-dresscode.png' ou '../../logo...' */}
-            <Image source={require('../../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
-            <Text style={styles.subtitle}>Crie sua conta</Text>
             
-            <View style={styles.form}>
+            {/* Cabeçalho com Logo Original e Título */}
+            <View style={styles.header}>
+              <Image source={require('../../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
+              <Text style={styles.subtitle}>Crie sua conta</Text>
+            </View>
+
+            {/* Glassmorphism Card de Registro */}
+            <View style={styles.glassCard}>
+              
+              {/* Campo Nome */}
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="account-outline" size={24} color="#ffffff80" />
-                <TextInput style={styles.input} placeholder="Nome" placeholderTextColor="#ffffff80" value={nome} onChangeText={setNome} />
+                <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Nome" 
+                  placeholderTextColor="#978d9d" 
+                  value={nome} 
+                  onChangeText={setNome} 
+                />
               </View>
 
+              {/* Campo Username */}
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="at" size={24} color="#ffffff80" />
-                <TextInput style={styles.input} placeholder="username" placeholderTextColor="#ffffff80" value={username} onChangeText={handleUsernameChange} autoCapitalize="none" />
+                <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Username" 
+                  placeholderTextColor="#978d9d" 
+                  value={username} 
+                  onChangeText={handleUsernameChange} 
+                  autoCapitalize="none" 
+                />
               </View>
 
+              {/* Campo Email */}
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="email-outline" size={24} color="#ffffff80" />
-                <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#ffffff80" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+                <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="E-mail" 
+                  placeholderTextColor="#978d9d" 
+                  value={email} 
+                  onChangeText={setEmail} 
+                  keyboardType="email-address" 
+                  autoCapitalize="none" 
+                />
               </View>
 
+              {/* Campo Senha */}
               <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="lock-outline" size={24} color="#ffffff80" />
-                <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#ffffff80" secureTextEntry={!showPass} value={password} onChangeText={setPassword} />
+                <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
+                <TextInput 
+                  style={styles.input} 
+                  placeholder="Senha" 
+                  placeholderTextColor="#978d9d" 
+                  secureTextEntry={!showPass} 
+                  value={password} 
+                  onChangeText={setPassword} 
+                />
                 <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                  <MaterialCommunityIcons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="#ffffff80" />
+                  <MaterialCommunityIcons 
+                    name={showPass ? 'eye-off-outline' : 'eye-outline'} 
+                    size={22} 
+                    color="#978d9d" 
+                  />
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-                <Text style={styles.linkText}>Já tem conta? <Text style={styles.boldText}>Login</Text></Text>
+              {/* Botão Criar Conta */}
+              <TouchableOpacity 
+                style={[styles.button, loading && styles.buttonDisabled]} 
+                onPress={handleRegister} 
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#ba7ef4" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
               </TouchableOpacity>
             </View>
+
+            {/* Link de Rodapé (Retorno para o Login) */}
+            <View style={styles.footerContainer}>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.mutedText}>Já tem conta? <Text style={styles.linkText}>Login</Text></Text>
+              </TouchableOpacity>
+            </View>
+
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  flex: { flex: 1 },
-  scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 30, paddingTop: 100, paddingBottom: 40 },
-  logo: { width: 130, height: 130, marginBottom: 10 },
-  subtitle: { fontSize: 18, color: '#ffffff90', fontWeight: '500', marginBottom: 30 },
-  form: { width: '100%', alignItems: 'center' },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.3)', height: 60, borderRadius: 30, paddingHorizontal: 20, marginBottom: 15, width: '100%' },
-  input: { flex: 1, color: '#fff', marginLeft: 10, fontSize: 16 },
-  button: { backgroundColor: '#2d1454', height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', width: '100%', marginTop: 10 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  backLink: { marginTop: 28 },
-  linkText: { color: '#ffffff80', fontSize: 14 },
-  boldText: { color: '#fff', fontWeight: 'bold', textDecorationLine: 'underline' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#131313' 
+  },
+  flex: { 
+    flex: 1 
+  },
+  scrollContent: { 
+    flexGrow: 1, 
+    alignItems: 'center', 
+    paddingHorizontal: 24, 
+    paddingTop: 80, 
+    paddingBottom: 40 
+  },
+  header: { 
+    alignItems: 'center', 
+    marginBottom: 32,
+    width: '100%',
+  },
+  logo: { 
+    width: 150, 
+    height: 150, 
+    marginBottom: 8 
+  },
+  subtitle: {
+    color: '#e5e2e1',
+    fontSize: 22,
+    fontWeight: '500',
+    letterSpacing: 1,
+  },
+  glassCard: {
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#4b0082',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  inputWrapper: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0, 0, 0, 0.2)', 
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    height: 52, 
+    borderRadius: 8, 
+    paddingHorizontal: 16, 
+    marginBottom: 16, 
+  },
+  input: { 
+    flex: 1, 
+    color: '#e5e2e1', 
+    marginLeft: 12, 
+    fontSize: 16,
+  },
+  button: { 
+    backgroundColor: '#4b0082', 
+    borderColor: 'rgba(221,183,255,0.2)',
+    borderWidth: 1,
+    height: 52, 
+    borderRadius: 8, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    width: '100%', 
+    marginTop: 8,
+  },
+  buttonDisabled: { 
+    opacity: 0.7 
+  },
+  buttonText: { 
+    color: '#ba7ef4', 
+    fontSize: 15, 
+    fontWeight: 'bold', 
+    letterSpacing: 1,
+  },
+  footerContainer: { 
+    alignItems: 'center', 
+    marginTop: 24, 
+  },
+  mutedText: {
+    color: '#978d9d',
+    fontSize: 15,
+  },
+  linkText: { 
+    color: '#ddb7ff', 
+    fontSize: 15,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
 });

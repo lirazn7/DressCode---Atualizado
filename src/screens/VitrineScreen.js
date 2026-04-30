@@ -1,261 +1,476 @@
-import React, { useState, useRef, useEffect } from 'react';
-import PostCard from '../components/PostCard';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
 import {
-  StyleSheet, Text, View, TouchableOpacity, Animated, Easing,
+  StyleSheet, Text, View, TouchableOpacity,
   FlatList, StatusBar, Image, Dimensions, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRoute, useIsFocused } from '@react-navigation/native';
+import { useIsFocused } from '@react-navigation/native';
+
+// Importações de Contexto e Banco (Supabase)
+import { useAuth } from '../contexts/AuthContext';
 import { getPosts, toggleLike, toggleFollow, getComments, addComment } from '../services/postService';
-// DB AGORA É SUPABASE
-import { supabase } from '../database/supabase';
 
 const { width, height } = Dimensions.get('window');
-const COLUMN_WIDTH = (width - 45) / 2;
 
 export default function VitrineScreen({ navigation }) {
   const isFocused = useIsFocused();
   const { user, signOut } = useAuth();
 
+  // ── ESTADOS ──
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPost, setSelectedPost] = useState(null);
   const [showComments, setShowComments] = useState(false);
   const [commentList, setCommentList] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [activePostId, setActivePostId] = useState(null); // Para saber em qual post estamos comentando
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const animValue = useRef(new Animated.Value(-100)).current;
-
-  const toggleMenu = () => {
-    const toValue = isMenuOpen ? -100 : 0;
-    Animated.timing(animValue, {
-      toValue,
-      duration: 300,
-      easing: Easing.bezier(0.25, 1, 0.5, 1),
-      useNativeDriver: false,
-    }).start();
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  // 2. BUSCA DE POSTS NA NUVEM
-  const fetchPosts = async () => {
-    if (!user?.id) { setLoading(false); return; }
-
-    const formattedPosts = await getPosts(user.id);
-    setPosts(formattedPosts);
-
-    if (selectedPost) {
-      const updated = formattedPosts.find(p => p.id === selectedPost.id);
-      if (updated) setSelectedPost(updated);
-    }
-
-    setLoading(false);
-  };
-
-  useEffect(() => { if (isFocused) fetchPosts(); }, [isFocused, user?.id]);
-
-  // 3. LÓGICA DE LIKE NA NUVEM
+// ── LÓGICA DE LIKE NA NUVEM ──
   const handleLike = async (postId) => {
+    // Atualização otimista: Muda a cor do coração E o número na hora!
+    setPosts(currentPosts => 
+      currentPosts.map(p => {
+        if (p.id === postId) {
+          // Transforma o texto em número (se for nulo, vira 0)
+          const currentCount = parseInt(p.likes_count || 0, 10);
+          // Se já tinha curtido, tira 1. Se não tinha, soma 1.
+          const newCount = p.isLiked ? currentCount - 1 : currentCount + 1;
+          
+          return { 
+            ...p, 
+            isLiked: !p.isLiked, 
+            likes_count: newCount 
+          };
+        }
+        return p;
+      })
+    );
+
+    // Manda para o banco de dados em segundo plano
     const sucesso = await toggleLike(user.id, postId);
     if (sucesso) {
-      fetchPosts(); // Recarrega a tela se deu certo
+      // Opcional: recarregar do banco para garantir sincronia
+      fetchPosts(); 
     }
   };
-
-  // 4. LÓGICA DE SEGUIR NA NUVEM
+  // ── LÓGICA DE SEGUIR NA NUVEM ──
   const handleFollow = async (targetId) => {
     const sucesso = await toggleFollow(user.id, targetId);
     if (sucesso) fetchPosts();
   };
 
-  // 5. BUSCAR COMENTÁRIOS
+  // ── BUSCAR E ENVIAR COMENTÁRIOS ──
   const handleOpenComments = async (postId) => {
+    setActivePostId(postId);
     const formatComments = await getComments(postId);
     setCommentList(formatComments);
     setShowComments(true);
   };
 
   const handlePostComment = async () => {
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !activePostId) return;
 
-    const sucesso = await addComment(user.id, selectedPost.id, newComment);
+    const sucesso = await addComment(user.id, activePostId, newComment);
     if (sucesso) {
       setNewComment('');
-      fetchPosts();
-      setShowComments(false);
+      // Recarrega os comentários e o post no fundo
+      const formatComments = await getComments(activePostId);
+      setCommentList(formatComments);
+      fetchPosts(); 
     }
   };
 
+  // ── RENDERIZAÇÃO DE CADA FOTO (TELA CHEIA) ──
+  const renderPost = ({ item }) => (
+    <View style={styles.postContainer}>
+      {/* Imagem de Fundo (Se a imagem falhar, a tela fica preta) */}
+      <Image 
+        source={{ uri: item.imageuri }} 
+        style={styles.backgroundImage} 
+      />
+      
+      {/* Degradê escuro para dar leitura ao texto */}
+      <LinearGradient
+        colors={['transparent', 'rgba(19, 19, 19, 0.4)', '#131313']}
+        style={styles.gradientOverlay}
+      />
+
+      <View style={styles.contentOverlay}>
+        {/* LADO ESQUERDO: TEXTOS E USERNAME */}
+        <View style={styles.textContainer}>
+          <TouchableOpacity 
+            style={styles.userRow}
+            onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome }, currentUser: user })}
+          >
+            <Text style={styles.postUsername}>@{item.username}</Text>
+            {/* Botão de Seguir (Se não for o próprio usuário) */}
+            {item.userid !== user?.id && (
+              <TouchableOpacity 
+                style={[styles.followBtn, item.isFollowing && styles.followingBtn]} 
+                onPress={() => handleFollow(item.userid)}
+              >
+                <Text style={styles.followText}>{item.isFollowing ? 'Seguindo' : 'Seguir'}</Text>
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.postDescription} numberOfLines={3}>
+            {item.legenda}
+          </Text>
+        </View>
+
+        {/* LADO DIREITO: BOTÕES FLUTUANTES */}
+        <View style={styles.interactionPanel}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => handleLike(item.id)}>
+            <MaterialCommunityIcons 
+              name={item.isLiked ? "heart" : "heart-outline"} 
+              size={32} 
+              color={item.isLiked ? "#ddb7ff" : "#e5e2e1"} 
+            />
+            {/* Se você tiver a contagem de likes no seu getPosts, coloque aqui: */}
+            <Text style={styles.iconText}>{item.likes_count || '0'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton} onPress={() => handleOpenComments(item.id)}>
+            <MaterialCommunityIcons name="chat-outline" size={30} color="#e5e2e1" />
+            <Text style={styles.iconText}>{item.comments_count || '0'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton}>
+            <MaterialCommunityIcons name="share-outline" size={32} color="#e5e2e1" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
+  // ── LOADING ──
   if (loading) return (
-    <View style={[styles.container, { justifyContent: 'center' }]}>
-      <ActivityIndicator size="large" color="#ed85ff" />
+    <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <ActivityIndicator size="large" color="#ddb7ff" />
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
+      {/* ── FEED DE ROLAGEM ── */}
       <FlatList
         data={posts}
-        numColumns={2}
         keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.scrollContent}
-        columnWrapperStyle={{ justifyContent: 'space-between' }}
-        renderItem={({ item, index }) => (
-          <PostCard
-            post={item}
-            onPress={() => setSelectedPost(item)}
-            customStyle={{ marginTop: index % 2 === 0 ? 0 : 25 }}
-          />
-        )}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.vitrineTitle}>Vitrine</Text>
-            <Text style={styles.greeting}>Olá, <Text style={styles.usernameHighlight}>@{user?.username}</Text></Text>
-          </View>
-        }
+        renderItem={renderPost}
+        pagingEnabled // O "pulo" entre os posts
+        showsVerticalScrollIndicator={false}
+        bounces={false}
       />
 
-      {/* MENU LATERAL */}
-      <Animated.View style={[styles.drawerContainer, { left: animValue }]}>
-        <View style={styles.drawerInner}>
-          <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="star-outline" size={30} color="#ffffff90" /></TouchableOpacity>
-          <TouchableOpacity style={styles.drawerItem}><MaterialCommunityIcons name="creation" size={30} color="#ffffff90" /></TouchableOpacity>
-
-          {/* BOTÃO DO CLOSET AQUI */}
-          <TouchableOpacity
-            style={styles.drawerItem}
-            onPress={() => { toggleMenu(); navigation.navigate('Closet', { user }); }}
-          >
-            <MaterialCommunityIcons name="hanger" size={30} color="#ffffff90" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.drawerItem}
-            onPress={() => { toggleMenu(); navigation.navigate('Profile', { profileUser: user, currentUser: user }); }}
-          >
-            <MaterialCommunityIcons name="account-circle-outline" size={30} color="#ed85ff" />
-          </TouchableOpacity>
-
-          {/* NOVO: BOTÃO SECRETO DE ADMIN (SÓ APARECE PARA O ADMIN) */}
-          {user?.role === 'admin' && (
-            <TouchableOpacity
-              style={styles.drawerItem}
-              onPress={() => { toggleMenu(); navigation.navigate('Admin'); }}
-            >
-              <MaterialCommunityIcons name="shield-check" size={30} color="#ed85ff" />
-              <Text style={{ color: '#ed85ff', fontSize: 9, fontWeight: 'bold', textAlign: 'center' }}>ADMIN</Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.drawerItem} onPress={() => { toggleMenu(); signOut(); }}>
-            <MaterialCommunityIcons name="logout" size={30} color="#ffffff90" />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.toggleTabSimple} onPress={toggleMenu}>
-          <MaterialCommunityIcons
-            name={isMenuOpen ? "chevron-left" : "chevron-right"}
-            size={38}
-            color="#ed85ff"
-          />
+      {/* ── TOP BAR (Header) ── */}
+      <View style={styles.topBar}>
+        <TouchableOpacity 
+          style={styles.avatarContainer}
+          onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}
+        >
+          <MaterialCommunityIcons name="account-circle" size={32} color="#ddb7ff" />
         </TouchableOpacity>
-      </Animated.View>
+        
+        <Text style={styles.headerTitle}>VITRINE</Text>
+        
+        <TouchableOpacity onPress={signOut}>
+          <MaterialCommunityIcons name="logout" size={26} color="#978d9d" />
+        </TouchableOpacity>
+      </View>
 
+      {/* ── FAB (Botão Add Post) ── */}
       <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('CreatePost', { user })}>
-        <MaterialCommunityIcons name="plus" size={40} color="#fff" />
+        <MaterialCommunityIcons name="plus" size={32} color="#4a0080" />
       </TouchableOpacity>
 
-      {/* MODAL DE DETALHES */}
-      <Modal visible={!!selectedPost} animationType="slide" transparent>
-        {selectedPost && (
-          <View style={styles.modalFull}>
-            <Image source={{ uri: selectedPost.imageuri }} style={styles.modalImage} />
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedPost(null)}>
-              <MaterialCommunityIcons name="chevron-down" size={40} color="#fff" />
-            </TouchableOpacity>
-            <View style={styles.modalBody}>
-              <View style={styles.actionRow}>
-                <TouchableOpacity onPress={() => handleLike(selectedPost.id)}>
-                  <MaterialCommunityIcons name={selectedPost.isLiked ? "heart" : "heart-outline"} size={32} color={selectedPost.isLiked ? "#ed85ff" : "#fff"} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleOpenComments(selectedPost.id)}>
-                  <MaterialCommunityIcons name="comment-outline" size={30} color="#fff" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.userRow}>
-                <TouchableOpacity onPress={() => { setSelectedPost(null); navigation.navigate('Profile', { profileUser: { id: selectedPost.userid, username: selectedPost.username, nome: selectedPost.nome }, currentUser: user }); }}>
-                  <Text style={styles.detailUser}>@{selectedPost.username}</Text>
-                </TouchableOpacity>
-                {selectedPost.userid !== user.id && (
-                  <TouchableOpacity style={[styles.followBtn, selectedPost.isFollowing && { backgroundColor: '#ed85ff' }]} onPress={() => handleFollow(selectedPost.userid)}>
-                    <Text style={styles.followText}>{selectedPost.isFollowing ? 'Seguindo' : 'Seguir'}</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              <Text style={styles.detailLegenda}>{selectedPost.legenda}</Text>
-            </View>
-          </View>
-        )}
-      </Modal>
+      {/* ── BOTTOM NAV BAR ── */}
+      <View style={styles.bottomNavContainer}>
+        <View style={styles.bottomNav}>
+          <TouchableOpacity style={styles.navButtonActive}>
+            <MaterialCommunityIcons name="view-grid-outline" size={24} color="#ddb7ff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Closet', { user })}>
+            <MaterialCommunityIcons name="hanger" size={24} color="#978d9d" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}>
+            <MaterialCommunityIcons name="account-outline" size={24} color="#978d9d" />
+          </TouchableOpacity>
 
-      {/* MODAL DE COMENTÁRIOS */}
-      <Modal visible={showComments} animationType="fade" transparent>
+          {/* BOTÃO SECRETO DE ADMIN */}
+          {user?.role === 'admin' && (
+            <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Admin')}>
+              <MaterialCommunityIcons name="shield-check" size={24} color="#ba7ef4" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* ── MODAL DE COMENTÁRIOS (Atualizado para o tema Dark) ── */}
+      <Modal visible={showComments} animationType="slide" transparent>
         <View style={styles.commentOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.commentContent}>
-            <TouchableOpacity onPress={() => setShowComments(false)}><Text style={{ color: '#ed85ff', textAlign: 'right', fontWeight: 'bold', marginBottom: 15 }}>Fechar</Text></TouchableOpacity>
-            <FlatList data={commentList} keyExtractor={(item) => item.id.toString()} renderItem={({ item }) => (
-              <View style={styles.commentBox}><Text style={{ color: '#ed85ff', fontWeight: 'bold' }}>@{item.username}</Text><Text style={{ color: '#fff' }}>{item.texto}</Text></View>
-            )} />
-            <View style={styles.commentInputArea}>
-              <TextInput style={styles.input} placeholder="Comentar..." placeholderTextColor="#aaa" value={newComment} onChangeText={setNewComment} />
-              <TouchableOpacity onPress={handlePostComment}>
-                <MaterialCommunityIcons name="send" size={24} color="#ed85ff" />
+            
+            <View style={styles.commentHeader}>
+              <Text style={styles.commentTitle}>Comentários</Text>
+              <TouchableOpacity onPress={() => setShowComments(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
               </TouchableOpacity>
             </View>
+
+            <FlatList 
+              data={commentList} 
+              keyExtractor={(item) => item.id.toString()} 
+              renderItem={({ item }) => (
+                <View style={styles.commentBox}>
+                  <Text style={styles.commentUser}>@{item.username}</Text>
+                  <Text style={styles.commentText}>{item.texto}</Text>
+                </View>
+              )} 
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
+            
+            <View style={styles.commentInputArea}>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Adicione um comentário..." 
+                placeholderTextColor="#978d9d" 
+                value={newComment} 
+                onChangeText={setNewComment} 
+              />
+              <TouchableOpacity onPress={handlePostComment} style={styles.sendButton}>
+                <MaterialCommunityIcons name="send" size={20} color="#4a0080" />
+              </TouchableOpacity>
+            </View>
+
           </KeyboardAvoidingView>
         </View>
       </Modal>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#5D1D7A' },
-  scrollContent: { paddingHorizontal: 15, paddingTop: 60, paddingBottom: 100 },
-  header: { alignItems: 'center', marginBottom: 30 },
-  vitrineTitle: { fontSize: 50, fontWeight: 'bold', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif' },
-  greeting: { color: '#ed85ff', fontSize: 18 },
-  usernameHighlight: { fontWeight: 'bold' },
-  drawerContainer: { position: 'absolute', top: height * 0.25, height: height * 0.5, flexDirection: 'row', alignItems: 'center', zIndex: 100 },
-  drawerInner: { width: 80, height: '100%', backgroundColor: '#8226A3', borderTopRightRadius: 40, borderBottomRightRadius: 40, paddingVertical: 30, alignItems: 'center', elevation: 10 },
-  drawerItem: { marginVertical: 15 },
-  toggleTabSimple: { height: 100, width: 60, justifyContent: 'center', alignItems: 'center', marginLeft: 20 },
-  postCard: { width: COLUMN_WIDTH, height: 280, borderRadius: 20, overflow: 'hidden', backgroundColor: '#4A1461' },
-  postImage: { width: '100%', height: '100%' },
-  postOverlay: { position: 'absolute', bottom: 0, width: '100%', padding: 12 },
-  postUsername: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
-  miniStatsRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  miniStatText: { color: '#fff', fontSize: 10, marginLeft: 3 },
-  fab: { position: 'absolute', bottom: 30, alignSelf: 'center', width: 70, height: 70, borderRadius: 35, backgroundColor: '#8226A3', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#ed85ff', elevation: 5 },
-  modalFull: { flex: 1, backgroundColor: '#1a011b' },
-  modalImage: { width: '100%', height: '60%' },
-  closeBtn: { position: 'absolute', top: 40, alignSelf: 'center' },
-  modalBody: { padding: 25 },
-  actionRow: { flexDirection: 'row', gap: 20, marginBottom: 15 },
-  userRow: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-  detailUser: { color: '#ed85ff', fontSize: 22, fontWeight: 'bold' },
-  followBtn: { paddingHorizontal: 15, paddingVertical: 5, borderRadius: 12, borderColor: '#ed85ff', borderWidth: 1 },
-  followText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
-  detailLegenda: { color: '#fff', marginTop: 12, fontSize: 16 },
-  commentOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  commentContent: { height: '65%', backgroundColor: '#2d1454', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20 },
-  commentBox: { marginBottom: 15, backgroundColor: '#ffffff10', padding: 12, borderRadius: 12 },
-  commentInputArea: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, borderTopWidth: 0.5, borderColor: '#ffffff30', paddingTop: 15 },
-  input: { flex: 1, color: '#fff', backgroundColor: '#00000040', borderRadius: 20, paddingHorizontal: 20, height: 50 }
+  container: {
+    flex: 1,
+    backgroundColor: '#131313',
+  },
+  postContainer: {
+    width: width,
+    height: height,
+    justifyContent: 'flex-end',
+  },
+  backgroundImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  gradientOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  contentOverlay: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingBottom: 110, // Abre espaço para a navbar
+  },
+  textContainer: {
+    flex: 1,
+    paddingRight: 20,
+    marginBottom: 10,
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  postUsername: {
+    color: '#ddb7ff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginRight: 12,
+  },
+  followBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderColor: '#ddb7ff',
+    borderWidth: 1,
+  },
+  followingBtn: {
+    backgroundColor: 'rgba(221, 183, 255, 0.2)',
+  },
+  followText: {
+    color: '#e5e2e1',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  postDescription: {
+    color: '#e5e2e1',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  interactionPanel: {
+    backgroundColor: 'rgba(32, 31, 31, 0.4)',
+    borderColor: 'rgba(221, 183, 255, 0.1)',
+    borderWidth: 1,
+    borderRadius: 30,
+    paddingVertical: 15,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  iconButton: {
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  iconText: {
+    color: '#e5e2e1',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  // ── TOP BAR ──
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 50 : 40,
+    paddingBottom: 15,
+    backgroundColor: 'rgba(19, 19, 19, 0.5)',
+  },
+  avatarContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#e5e2e1',
+    fontSize: 20,
+    letterSpacing: 4,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontStyle: 'italic',
+  },
+  // ── FAB ──
+  fab: {
+    position: 'absolute',
+    bottom: 110,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#ddb7ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#4b0082',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  // ── BOTTOM NAV ──
+  bottomNavContainer: {
+    position: 'absolute',
+    bottom: 30,
+    width: '100%',
+    alignItems: 'center',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    width: '85%',
+    backgroundColor: 'rgba(28, 27, 27, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderRadius: 40,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  navButton: {
+    padding: 10,
+    borderRadius: 20,
+  },
+  navButtonActive: {
+    padding: 10,
+    borderRadius: 20,
+    backgroundColor: 'rgba(123, 65, 179, 0.2)',
+  },
+  // ── MODAL COMENTÁRIOS ──
+  commentOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  commentContent: {
+    height: '60%',
+    backgroundColor: '#1c1b1b',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    borderColor: 'rgba(255,255,255,0.05)',
+    borderTopWidth: 1,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  commentTitle: {
+    color: '#e5e2e1',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  commentBox: {
+    marginBottom: 15,
+    backgroundColor: '#201f1f',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  commentUser: {
+    color: '#ddb7ff',
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  commentText: {
+    color: '#e5e2e1',
+    lineHeight: 20,
+  },
+  commentInputArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+  },
+  input: {
+    flex: 1,
+    color: '#e5e2e1',
+    backgroundColor: '#2a2a2a',
+    borderRadius: 25,
+    paddingHorizontal: 20,
+    height: 50,
+  },
+  sendButton: {
+    backgroundColor: '#ddb7ff',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  }
 });

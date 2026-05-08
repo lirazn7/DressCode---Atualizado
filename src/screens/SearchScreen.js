@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, Text, TextInput, StyleSheet, FlatList, Image, 
-  TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar 
+  TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform // <--- O Platform entrou aqui no final!
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../database/supabase';
@@ -14,26 +14,31 @@ export default function SearchScreen({ navigation }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // ── BUSCA NO BANCO EM TEMPO REAL ──
+  // ── BUSCA NO BANCO (COM TESTE DE RAIO-X) ──
   const handleSearch = async (text) => {
     setSearchQuery(text);
     
-    // Só começa a buscar se tiver pelo menos 2 letras para economizar internet
-    if (text.length < 2) {
+    const cleanText = text.trim();
+
+    if (cleanText.length < 2) {
       setResults([]);
       return;
     }
 
     setLoading(true);
     try {
-      // Busca usuários onde o 'username' ou 'nome' pareça com o que foi digitado
+      // RAIO-X: Vai tentar puxar 5 usuários de qualquer jeito
       const { data, error } = await supabase
         .from('users')
-        .select('id, username, nome, avatar_url')
-        .or(`username.ilike.%${text}%,nome.ilike.%${text}%`)
-        .limit(20);
+        .select('*')
+        .limit(5);
 
-      if (!error) setResults(data || []);
+      if (error) {
+        Alert.alert("Erro do Supabase", error.message);
+      } else {
+        console.log("RAIO-X DOS USUÁRIOS:", data); // Olhe essa mensagem no terminal do seu PC!
+        setResults(data || []);
+      }
     } catch (e) {
       console.log("Erro na busca:", e);
     } finally {
@@ -64,7 +69,6 @@ export default function SearchScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* ── CABEÇALHO COM A BARRA DE BUSCA ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <MaterialCommunityIcons name="arrow-left" size={28} color="#e5e2e1" />
@@ -78,7 +82,7 @@ export default function SearchScreen({ navigation }) {
             placeholderTextColor="#978d9d"
             value={searchQuery}
             onChangeText={handleSearch}
-            autoFocus={true} // O teclado já abre sozinho ao entrar na tela
+            autoFocus={true}
             autoCapitalize="none"
           />
           {searchQuery.length > 0 && (
@@ -89,7 +93,6 @@ export default function SearchScreen({ navigation }) {
         </View>
       </View>
 
-      {/* ── LISTA DE RESULTADOS ── */}
       {loading ? (
         <ActivityIndicator size="large" color="#ba7ef4" style={{ marginTop: 40 }} />
       ) : (
@@ -120,7 +123,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     paddingHorizontal: 15, 
-    paddingTop: 20, 
+    paddingTop: Platform.OS === 'ios' ? 10 : 30, 
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)'
@@ -139,7 +142,6 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 10 },
   searchInput: { flex: 1, color: '#e5e2e1', fontSize: 16 },
-  
   listContent: { paddingHorizontal: 20, paddingTop: 20 },
   userCard: {
     flexDirection: 'row',
@@ -151,20 +153,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.05)'
   },
-  avatarBorder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: '#ba7ef4',
-    padding: 2,
-    marginRight: 15
-  },
+  avatarBorder: { width: 50, height: 50, borderRadius: 25, borderWidth: 2, borderColor: '#ba7ef4', padding: 2, marginRight: 15 },
   avatarImg: { width: '100%', height: '100%', borderRadius: 25 },
   userInfo: { flex: 1 },
   username: { color: '#e5e2e1', fontSize: 16, fontWeight: 'bold' },
   nome: { color: '#978d9d', fontSize: 13, marginTop: 2 },
-  
   emptyText: { color: '#978d9d', textAlign: 'center', marginTop: 40, fontSize: 15 },
   placeholderState: { alignItems: 'center', marginTop: 80 },
   placeholderText: { color: '#978d9d', marginTop: 15, fontSize: 15 }

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, Image, Dimensions, 
+  View, Text, StyleSheet, FlatList, Image, Dimensions,
   TouchableOpacity, ActivityIndicator, Modal, TextInput, Platform, StatusBar, SafeAreaView,
-  KeyboardAvoidingView
+  KeyboardAvoidingView, Alert
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import { Buffer } from 'buffer';
 import { supabase } from '../database/supabase';
 
 const { width } = Dimensions.get('window');
@@ -15,9 +17,13 @@ export default function ProfileScreen({ route, navigation }) {
   const { profileUser, currentUser } = route.params;
   const [userPosts, setUserPosts] = useState([]);
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+
   const [bio, setBio] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(profileUser?.avatar_url || 'https://via.placeholder.com/150');
+
   const [loading, setLoading] = useState(true);
-  
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   const [isEditing, setIsEditing] = useState(false);
   const [editBioText, setEditBioText] = useState('');
 
@@ -32,15 +38,18 @@ export default function ProfileScreen({ route, navigation }) {
         .select('bio, avatar_url')
         .eq('id', profileUser.id)
         .single();
-      
-      if (userData) setBio(userData.bio || '');
+
+      if (userData) {
+        setBio(userData.bio || '');
+        if (userData.avatar_url) setAvatarUrl(userData.avatar_url);
+      }
 
       const { data: posts } = await supabase
         .from('posts')
         .select('*')
         .eq('userid', profileUser.id)
         .order('id', { ascending: false });
-      
+
       setUserPosts(posts || []);
 
       const { count: pCount } = await supabase.from('posts').select('*', { count: 'exact', head: true }).eq('userid', profileUser.id);
@@ -60,8 +69,8 @@ export default function ProfileScreen({ route, navigation }) {
     }
   };
 
-  useEffect(() => { 
-    fetchProfileData(); 
+  useEffect(() => {
+    fetchProfileData();
   }, [profileUser?.id]);
 
   const handleSaveBio = async () => {
@@ -69,6 +78,53 @@ export default function ProfileScreen({ route, navigation }) {
     if (!error) {
       setBio(editBioText);
       setIsEditing(false);
+    } else {
+      Alert.alert("Erro", "Não foi possível salvar a bio.");
+    }
+  };
+
+  // --- FUNÇÃO DE MUDAR A FOTO DE PERFIL ---
+  const handleUpdateAvatar = async () => {
+    if (!isMyProfile) return; // Só altera se for o seu próprio perfil
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1], // Força a foto a ser quadrada para caber certinho no círculo
+      quality: 0.5,
+      base64: true
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setUploadingAvatar(true);
+      try {
+        const base64Data = result.assets[0].base64;
+        const buffer = Buffer.from(base64Data, 'base64');
+        const fileName = `avatars/${currentUser.id}/${Date.now()}.jpg`;
+
+        // Sobe para o bucket post_images (na pasta avatars)
+        const { error: uploadError } = await supabase.storage.from('post_images').upload(fileName, buffer, { contentType: 'image/jpeg' });
+        if (uploadError) throw uploadError;
+
+        // Pega a URL pública
+        const { data: urlData } = supabase.storage.from('post_images').getPublicUrl(fileName);
+        const newUrl = urlData.publicUrl;
+
+        // Atualiza a tabela de usuários
+        const { error: dbError } = await supabase.from('users').update({ avatar_url: newUrl }).eq('id', currentUser.id);
+
+        if (!dbError) {
+          setAvatarUrl(newUrl); // Atualiza a foto na tela instantaneamente
+        } else {
+          throw dbError;
+        }
+
+      } catch (error) {
+        Alert.alert("Erro", "Falha ao atualizar foto de perfil.");
+        console.log(error);
+      } finally {
+        setUploadingAvatar(false);
+      }
     }
   };
 
@@ -76,18 +132,30 @@ export default function ProfileScreen({ route, navigation }) {
     <View style={styles.headerArea}>
       <View style={styles.avatarWrapper}>
         <LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.avatarGradient}>
-          <View style={styles.avatarInner}>
-            <Image 
-              source={{ uri: profileUser?.avatar_url || 'https://via.placeholder.com/150' }} 
-              style={styles.avatarImg} 
-            />
-          </View>
+          <TouchableOpacity
+            style={styles.avatarInner}
+            onPress={handleUpdateAvatar}
+            activeOpacity={isMyProfile ? 0.7 : 1}
+          >
+            {uploadingAvatar ? (
+              <ActivityIndicator color="#ba7ef4" style={{ flex: 1 }} />
+            ) : (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+            )}
+
+            {/* Ícone de câmera pequenininho se for o seu perfil */}
+            {isMyProfile && !uploadingAvatar && (
+              <View style={styles.editAvatarBadge}>
+                <MaterialCommunityIcons name="camera-plus" size={14} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
         </LinearGradient>
       </View>
 
       <Text style={styles.profileName}>{profileUser?.nome || 'Usuário'}</Text>
       <Text style={styles.profileHandle}>@{profileUser?.username || 'user'}</Text>
-      
+
       <Text style={styles.bioDisplay}>
         {bio || (isMyProfile ? "Adicione uma descrição sobre seu estilo..." : "")}
       </Text>
@@ -125,7 +193,7 @@ export default function ProfileScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <MaterialCommunityIcons name="chevron-left" size={30} color="#fff" />
@@ -145,7 +213,7 @@ export default function ProfileScreen({ route, navigation }) {
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.columnStyle}
           renderItem={({ item, index }) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
               onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
             >
@@ -158,16 +226,16 @@ export default function ProfileScreen({ route, navigation }) {
         />
       )}
 
-      {/* BOTTOM NAV ATUALIZADA */}
+      {/* BOTTOM NAV */}
       <View style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
           <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}>
-             <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" />
+            <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Search')} >
-             <MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" />
+            <MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.centerAddBtn}
             onPress={() => navigation.navigate('CreatePost', { user: currentUser })}
           >
@@ -176,28 +244,29 @@ export default function ProfileScreen({ route, navigation }) {
             </LinearGradient>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Closet')}>
-             <MaterialCommunityIcons name="hanger" size={26} color="#ffffff60" />
+            <MaterialCommunityIcons name="hanger" size={26} color="#ffffff60" />
           </TouchableOpacity>
           <TouchableOpacity>
-             <MaterialCommunityIcons name="account" size={26} color="#ddb7ff" />
+            <MaterialCommunityIcons name="account" size={26} color="#ddb7ff" />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* MODAL EDIÇÃO DE BIO */}
       <Modal visible={isEditing} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalWrapper}>
             <View style={styles.modalContent}>
               <Text style={styles.modalHeader}>Editar Bio</Text>
               <View style={styles.inputBox}>
-                <TextInput 
-                  style={styles.textInput} 
-                  multiline 
-                  maxLength={150} 
-                  placeholder="Sua bio..." 
+                <TextInput
+                  style={styles.textInput}
+                  multiline
+                  maxLength={150}
+                  placeholder="Sua bio..."
                   placeholderTextColor="#978d9d"
-                  value={editBioText} 
-                  onChangeText={setEditBioText} 
+                  value={editBioText}
+                  onChangeText={setEditBioText}
                 />
               </View>
               <View style={styles.modalButtons}>
@@ -223,8 +292,9 @@ const styles = StyleSheet.create({
   headerArea: { alignItems: 'center', paddingVertical: 20 },
   avatarWrapper: { marginBottom: 15 },
   avatarGradient: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
-  avatarInner: { width: 114, height: 114, borderRadius: 57, borderWidth: 3, borderColor: '#131313', overflow: 'hidden' },
+  avatarInner: { width: 114, height: 114, borderRadius: 57, borderWidth: 3, borderColor: '#131313', overflow: 'hidden', backgroundColor: '#160d22', justifyContent: 'center' },
   avatarImg: { width: '100%', height: '100%' },
+  editAvatarBadge: { position: 'absolute', bottom: 5, right: 35, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 4 },
   profileName: { color: '#e5e2e1', fontSize: 24, fontWeight: 'bold' },
   profileHandle: { color: '#ba7ef4', fontSize: 14, letterSpacing: 1, marginBottom: 10 },
   bioDisplay: { color: '#978d9d', textAlign: 'center', fontSize: 14, paddingHorizontal: 40, lineHeight: 20 },

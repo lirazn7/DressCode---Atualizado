@@ -174,8 +174,8 @@ export default function ClosetScreen({ navigation }) {
       {/* BOTTOM NAV UNIFICADA */}
       <View style={styles.bottomNavContainer}>
         <View style={styles.bottomNav}>
-          <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}><MaterialCommunityIcons name="grid-view" size={26} color="#ffffff60" /></TouchableOpacity>
-          <TouchableOpacity><MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}><MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" /></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Search')}><MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" /></TouchableOpacity>
           <TouchableOpacity style={styles.centerAddBtn} onPress={() => navigation.navigate('CreatePost')}><LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.addBtnGradient}><MaterialCommunityIcons name="plus" size={32} color="#fff" /></LinearGradient></TouchableOpacity>
           <TouchableOpacity><MaterialCommunityIcons name="hanger" size={26} color="#ddb7ff" /></TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}><MaterialCommunityIcons name="account-outline" size={26} color="#ffffff60" /></TouchableOpacity>

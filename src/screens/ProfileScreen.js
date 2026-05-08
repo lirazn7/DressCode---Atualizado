@@ -164,7 +164,7 @@ export default function ProfileScreen({ route, navigation }) {
           <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}>
              <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Search')} >
              <MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" />
           </TouchableOpacity>
           <TouchableOpacity 

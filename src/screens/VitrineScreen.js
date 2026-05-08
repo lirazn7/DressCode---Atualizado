@@ -153,7 +153,7 @@ export default function VitrineScreen({ navigation }) {
           <TouchableOpacity style={styles.navButtonActive}>
             <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ddb7ff" />
           </TouchableOpacity>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
             <MaterialCommunityIcons name="magnify" size={26} color="#978d9d" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.centerAddBtn} onPress={() => navigation.navigate('CreatePost', { user })}>

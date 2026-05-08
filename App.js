@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import SearchScreen from './src/screens/SearchScreen';
 
 // 1. O nosso Guarda-Chuva (Contexto)
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -38,6 +39,7 @@ function AppStack() {
       <Stack.Screen name="CreatePost" component={CreatePostScreen} />
       <Stack.Screen name="Admin" component={AdminScreen} />
       <Stack.Screen name="SetUsername" component={SetUsernameScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
 }

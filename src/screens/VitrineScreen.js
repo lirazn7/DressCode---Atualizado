@@ -1,3 +1,4 @@
+import { supabase } from '../database/supabase';
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet, Text, View, TouchableOpacity,
@@ -9,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { getPosts, toggleLike, toggleFollow, getComments, addComment } from '../services/postService';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +29,6 @@ export default function VitrineScreen({ navigation }) {
   const fetchPosts = async () => {
     try {
       if (!user?.id) { setLoading(false); return; }
-      const formattedPosts = await getPosts(user.id);
       setPosts(formattedPosts || []);
     } catch (error) {
       console.log(error);
@@ -85,17 +86,32 @@ export default function VitrineScreen({ navigation }) {
       style={styles.postContainer}
       onLongPress={() => setFullImage(item.imageuri)}
       delayLongPress={400}
+      // 👇 Acessibilidade para o Card inteiro
+      accessible={true}
+      accessibilityRole="imagebutton"
+      accessibilityLabel={`Look postado por ${item.username}. Legenda: ${item.legenda}`}
     >
       <Image source={{ uri: item.imageuri }} style={styles.backgroundImage} />
       <LinearGradient colors={['transparent', 'rgba(19, 19, 19, 0.4)', '#131313']} style={styles.gradientOverlay} />
       <View style={styles.contentOverlay}>
         <View style={styles.textContainer}>
           <View style={styles.userRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome }, currentUser: user })}>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome }, currentUser: user })}
+              // Acessibilidade para o Perfil
+              accessibilityRole="button"
+              accessibilityLabel={`Ir para o perfil de ${item.username}`}
+            >
               <Text style={styles.postUsername}>@{item.username}</Text>
             </TouchableOpacity>
             {item.userid !== user?.id && (
-              <TouchableOpacity style={[styles.followBtn, item.isFollowing && styles.followingBtn]} onPress={() => handleFollow(item.userid)}>
+              <TouchableOpacity 
+                style={[styles.followBtn, item.isFollowing && styles.followingBtn]} 
+                onPress={() => handleFollow(item.userid)}
+                //  Acessibilidade para o botão Seguir
+                accessibilityRole="button"
+                accessibilityLabel={item.isFollowing ? `Deixar de seguir ${item.username}` : `Seguir ${item.username}`}
+              >
                 <Text style={styles.followText}>{item.isFollowing ? 'Seguindo' : 'Seguir'}</Text>
               </TouchableOpacity>
             )}
@@ -103,15 +119,32 @@ export default function VitrineScreen({ navigation }) {
           <Text style={styles.postDescription} numberOfLines={3}>{item.legenda}</Text>
         </View>
         <View style={styles.interactionPanel}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => handleLike(item.id)}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={() => handleLike(item.id)}
+            //  Acessibilidade para o botão de Curtir
+            accessibilityRole="button"
+            accessibilityLabel={item.isLiked ? "Remover curtida" : "Curtir este look"}
+            accessibilityState={{ checked: item.isLiked }}
+          >
             <MaterialCommunityIcons name={item.isLiked ? "heart" : "heart-outline"} size={32} color={item.isLiked ? "#ddb7ff" : "#e5e2e1"} />
             <Text style={styles.iconText}>{item.likes_count || '0'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton} onPress={() => handleOpenComments(item.id)}>
+          <TouchableOpacity 
+            style={styles.iconButton} 
+            onPress={() => handleOpenComments(item.id)}
+            //  Acessibilidade para o botão de Comentários
+            accessibilityRole="button"
+            accessibilityLabel={`Ver comentários. Atualmente tem ${item.comments_count || '0'} comentários`}
+          >
             <MaterialCommunityIcons name="chat-outline" size={30} color="#e5e2e1" />
             <Text style={styles.iconText}>{item.comments_count || '0'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel="Compartilhar este look"
+          >
             <MaterialCommunityIcons name="share-outline" size={32} color="#e5e2e1" />
           </TouchableOpacity>
         </View>
@@ -130,6 +163,14 @@ export default function VitrineScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+
+      {/* BOTÃO DE TESTE DE SEGURANÇA */}
+      <TouchableOpacity 
+        style={{ backgroundColor: '#ff4444', padding: 15, alignItems: 'center', marginTop: 40, marginHorizontal: 20, borderRadius: 10 }}
+        onPress={testarSegurancaRLS}
+      >
+        <Text style={{ color: '#fff', fontWeight: 'bold' }}>FORÇAR RLS (TESTE RNF03)</Text>
+      </TouchableOpacity>
       
       <FlatList
         data={posts}

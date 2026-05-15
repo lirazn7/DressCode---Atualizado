@@ -164,14 +164,7 @@ export default function VitrineScreen({ navigation }) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* BOTÃO DE TESTE DE SEGURANÇA */}
-      <TouchableOpacity 
-        style={{ backgroundColor: '#ff4444', padding: 15, alignItems: 'center', marginTop: 40, marginHorizontal: 20, borderRadius: 10 }}
-        onPress={testarSegurancaRLS}
-      >
-        <Text style={{ color: '#fff', fontWeight: 'bold' }}>FORÇAR RLS (TESTE RNF03)</Text>
-      </TouchableOpacity>
-      
+    
       <FlatList
         data={posts}
         keyExtractor={(item) => item.id.toString()}

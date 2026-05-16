@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import SearchScreen from '../SearchScreen'; 
-import { supabase } from '../../database/supabase'; // Importamos o Supabase para o teste!
+import { supabase } from '../../database/supabase'; // Import do Supabase para o teste!
 
 // ── 1. MOCK DE AUTENTICAÇÃO ──
 jest.mock('../../contexts/AuthContext', () => ({

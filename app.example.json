@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "dresscode",
+    "slug": "snack-6bb6208d-7b54-4ccc-924b-ce3e55cf5ef7",
+    "version": "1.0.0",
+    "extra": {
+      "firebaseApiKey": "COLOQUE_SUA_API_KEY_AQUI",
+      "firebaseAuthDomain": "SEU_PROJETO.firebaseapp.com",
+      "firebaseProjectId": "SEU_PROJETO"
+    }
+  }
+}

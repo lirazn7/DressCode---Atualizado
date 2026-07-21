@@ -1,10 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Animated
+  KeyboardAvoidingView, Platform, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 // ── IMPORTAÇÕES DO FIREBASE ────────────────────────────────────────────────
@@ -36,20 +35,9 @@ export default function LoginScreen({ navigation }) {
   const [nome, setNome] = useState('');
   const [username, setUsername] = useState('');
 
-  const animValue = useRef(new Animated.Value(0)).current;
-
   const toggleMode = () => {
-    const toValue = isRegisterMode ? 0 : 1;
-    Animated.spring(animValue, {
-      toValue,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: false,
-    }).start();
     setIsRegisterMode(!isRegisterMode);
   };
-
-  const logoSize = animValue.interpolate({ inputRange: [0, 1], outputRange: [150, 100] });
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -127,20 +115,20 @@ export default function LoginScreen({ navigation }) {
             
             {/* LOGO */}
             <View style={styles.header}>
-              <Animated.Image
+              <Image
                 source={require('../../logo-def-dresscode.png')}
-                style={{ width: logoSize, height: logoSize }}
+                style={styles.logoImage}
                 resizeMode="contain"
               />
             </View>
 
-            {/* FORMULÁRIO (SEM SOBREPOSIÇÃO DE CAMADAS QUE TRAVAM O CLIQUE) */}
+            {/* FORMULÁRIO */}
             <View style={styles.card}>
               {!isRegisterMode ? (
-                /* MODAL LOGIN */
+                /* LOGIN */
                 <View style={styles.formContainer}>
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>✉</Text>
                     <TextInput
                       style={styles.input}
                       placeholder="Email"
@@ -153,7 +141,7 @@ export default function LoginScreen({ navigation }) {
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>🔒</Text>
                     <TextInput
                       style={styles.input}
                       placeholder="Senha"
@@ -163,7 +151,7 @@ export default function LoginScreen({ navigation }) {
                       onChangeText={setPassword}
                     />
                     <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
-                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
+                      <Text style={{ color: '#978d9d', fontSize: 16 }}>{showPass ? "🙈" : "👁"}</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -176,27 +164,27 @@ export default function LoginScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
               ) : (
-                /* MODAL CADASTRO */
+                /* CADASTRO */
                 <View style={styles.formContainer}>
                   <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>👤</Text>
                     <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="at" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>@</Text>
                     <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>✉</Text>
                     <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <Text style={styles.iconSymbol}>🔒</Text>
                     <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
                   </View>
 
@@ -250,6 +238,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
+  logoImage: {
+    width: 160,
+    height: 120,
+  },
   card: {
     backgroundColor: '#160d22',
     borderColor: 'rgba(255, 255, 255, 0.08)',
@@ -277,8 +269,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
   },
-  iconStyle: {
-    marginRight: 8,
+  iconSymbol: {
+    fontSize: 16,
+    color: '#978d9d',
+    marginRight: 10,
   },
   input: {
     flex: 1,

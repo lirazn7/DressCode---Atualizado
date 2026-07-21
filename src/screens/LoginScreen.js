@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Pressable
+  KeyboardAvoidingView, Platform, ActivityIndicator, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,25 +12,6 @@ import { auth, db } from '../database/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
-// INJEÇÃO ROBUSTA DA FONTE DE ÍCONES PARA O NAVEGADOR
-if (Platform.OS === 'web' && typeof document !== 'undefined') {
-  const iconFontStyles = `
-    @font-face {
-      src: url('https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.0.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf') format('truetype');
-      font-family: 'MaterialCommunityIcons';
-    }
-  `;
-  const style = document.createElement('style');
-  style.type = 'text/css';
-  if (style.styleSheet) {
-    style.styleSheet.cssText = iconFontStyles;
-  } else {
-    style.appendChild(document.createTextNode(iconFontStyles));
-  }
-  document.head.appendChild(style);
-}
-
-// Alerta Híbrido (Web + Mobile)
 const showAlert = (title, message, buttons) => {
   if (Platform.OS === 'web') {
     window.alert(`${title}: ${message}`);
@@ -68,12 +49,7 @@ export default function LoginScreen({ navigation }) {
     setIsRegisterMode(!isRegisterMode);
   };
 
-  const logoSize = animValue.interpolate({ inputRange: [0, 1], outputRange: [160, 110] });
-  const logoTranslateY = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
-  const loginOpacity = animValue.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0] });
-  const registerOpacity = animValue.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1] });
-  const loginTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -320] });
-  const registerTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [320, 0] });
+  const logoSize = animValue.interpolate({ inputRange: [0, 1], outputRange: [150, 100] });
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -145,117 +121,100 @@ export default function LoginScreen({ navigation }) {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#131313', '#2c0050', '#131313']} style={StyleSheet.absoluteFillObject} opacity={0.6} />
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-        style={{ flex: 1, width: '100%' }}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <View style={styles.inner}>
           <View style={styles.responsiveWrapper}>
             
             {/* LOGO */}
-            <Animated.View style={[styles.header, { transform: [{ translateY: logoTranslateY }] }]}>
+            <View style={styles.header}>
               <Animated.Image
                 source={require('../../logo-def-dresscode.png')}
                 style={{ width: logoSize, height: logoSize }}
                 resizeMode="contain"
               />
-            </Animated.View>
+            </View>
 
-            {/* AUTH CARD */}
-            <View style={styles.authBox}>
-              
-              {/* LOGIN */}
-              <Animated.View
-                style={[styles.card, { opacity: loginOpacity, transform: [{ translateX: loginTranslateX }] }]}
-                pointerEvents={isRegisterMode ? 'none' : 'auto'}
-              >
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#978d9d"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
+            {/* FORMULÁRIO (SEM SOBREPOSIÇÃO DE CAMADAS QUE TRAVAM O CLIQUE) */}
+            <View style={styles.card}>
+              {!isRegisterMode ? (
+                /* MODAL LOGIN */
+                <View style={styles.formContainer}>
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      placeholderTextColor="#978d9d"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
+
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Senha"
+                      placeholderTextColor="#978d9d"
+                      secureTextEntry={!showPass}
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
+                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity onPress={() => showAlert('Recuperar', 'Instruções enviadas para seu e-mail.')}>
+                    <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
+                  </TouchableOpacity>
                 </View>
+              ) : (
+                /* MODAL CADASTRO */
+                <View style={styles.formContainer}>
+                  <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
 
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Senha"
-                    placeholderTextColor="#978d9d"
-                    secureTextEntry={!showPass}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <Pressable onPress={() => setShowPass(!showPass)} hitSlop={10} style={{ padding: 4 }}>
-                    <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
-                  </Pressable>
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                  </View>
+
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="at" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
+                  </View>
+
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                  </View>
+
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
+                  </View>
+
+                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
+                  </TouchableOpacity>
                 </View>
-
-                <Pressable onPress={() => showAlert('Recuperar', 'Instruções enviadas para seu e-mail.')} hitSlop={10}>
-                  <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
-                </Pressable>
-
-                <Pressable 
-                  style={({ pressed }) => [styles.mainBtn, pressed && { opacity: 0.8 }]} 
-                  onPress={handleLogin} 
-                  disabled={loading}
-                >
-                  {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
-                </Pressable>
-              </Animated.View>
-
-              {/* CADASTRO */}
-              <Animated.View
-                style={[styles.card, styles.absoluteCard, { opacity: registerOpacity, transform: [{ translateX: registerTranslateX }] }]}
-                pointerEvents={isRegisterMode ? 'auto' : 'none'}
-              >
-                <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
-                  <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
-                  <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
-                  <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
-                  <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
-                </View>
-
-                <Pressable 
-                  style={({ pressed }) => [styles.mainBtn, { backgroundColor: '#ba7ef4' }, pressed && { opacity: 0.8 }]} 
-                  onPress={handleRegister} 
-                  disabled={loading}
-                >
-                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
-                </Pressable>
-              </Animated.View>
-
+              )}
             </View>
 
             {/* FOOTER */}
             <View style={styles.footer}>
-              <Pressable onPress={toggleMode} hitSlop={15}>
+              <TouchableOpacity onPress={toggleMode}>
                 <Text style={styles.toggleText}>
                   {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
                   <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
 
           </View>
@@ -270,6 +229,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#131313',
   },
+  keyboardView: {
+    flex: 1,
+    width: '100%',
+  },
   inner: {
     flex: 1,
     justifyContent: 'center',
@@ -279,40 +242,24 @@ const styles = StyleSheet.create({
   },
   responsiveWrapper: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 400,
     alignItems: 'center',
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
-    zIndex: 10,
-    marginBottom: 10,
-  },
-  authBox: {
-    width: '100%',
-    minHeight: 360,
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
+    marginBottom: 15,
   },
   card: {
     backgroundColor: '#160d22',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: 20,
-    padding: 22,
+    padding: 20,
     width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
-    elevation: 4,
   },
-  absoluteCard: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+  formContainer: {
+    width: '100%',
   },
   glowOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -324,17 +271,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#160d22',
     borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 52,
+    paddingHorizontal: 12,
+    height: 50,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
   },
+  iconStyle: {
+    marginRight: 8,
+  },
   input: {
     flex: 1,
     color: '#e5e2e1',
-    marginLeft: 10,
     fontSize: 15,
+    height: '100%',
     outlineStyle: 'none',
   },
   forgotText: {
@@ -346,7 +296,7 @@ const styles = StyleSheet.create({
   },
   mainBtn: {
     backgroundColor: '#ddb7ff',
-    height: 52,
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',

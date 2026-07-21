@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert, ActivityIndicator, Animated
+  KeyboardAvoidingView, Platform, ActivityIndicator, Animated, Pressable
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,12 +12,14 @@ import { auth, db } from '../database/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
-// INJEÇÃO DE FONTE PARA CARREGAR ÍCONES NA WEB / MOVIEL WEB
-if (Platform.OS === 'web') {
-  const iconFontStyles = `@font-face {
-    src: url(${require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf')});
-    font-family: MaterialCommunityIcons;
-  }`;
+// INJEÇÃO ROBUSTA DA FONTE DE ÍCONES PARA O NAVEGADOR
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const iconFontStyles = `
+    @font-face {
+      src: url('https://cdn.jsdelivr.net/npm/@expo/vector-icons@14.0.0/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf') format('truetype');
+      font-family: 'MaterialCommunityIcons';
+    }
+  `;
   const style = document.createElement('style');
   style.type = 'text/css';
   if (style.styleSheet) {
@@ -36,7 +38,7 @@ const showAlert = (title, message, buttons) => {
       buttons[0].onPress();
     }
   } else {
-    Alert.alert(title, message, buttons);
+    alert(`${title}: ${message}`);
   }
 };
 
@@ -138,122 +140,126 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const ContentWrapper = Platform.OS === 'web' ? View : TouchableWithoutFeedback;
-  const wrapperProps = Platform.OS === 'web' ? { style: { flex: 1, width: '100%' } } : { onPress: Keyboard.dismiss };
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <LinearGradient colors={['#131313', '#2c0050', '#131313']} style={StyleSheet.absoluteFillObject} opacity={0.6} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, width: '100%' }}>
-        <ContentWrapper {...wrapperProps}>
-          <View style={styles.inner}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1, width: '100%' }}
+      >
+        <View style={styles.inner}>
+          <View style={styles.responsiveWrapper}>
+            
+            {/* LOGO */}
+            <Animated.View style={[styles.header, { transform: [{ translateY: logoTranslateY }] }]}>
+              <Animated.Image
+                source={require('../../logo-def-dresscode.png')}
+                style={{ width: logoSize, height: logoSize }}
+                resizeMode="contain"
+              />
+            </Animated.View>
 
-            <View style={styles.responsiveWrapper}>
+            {/* AUTH CARD */}
+            <View style={styles.authBox}>
               
-              {/* LOGO */}
-              <Animated.View style={[styles.header, { transform: [{ translateY: logoTranslateY }] }]}>
-                <Animated.Image
-                  source={require('../../logo-def-dresscode.png')}
-                  style={{ width: logoSize, height: logoSize }}
-                  resizeMode="contain"
-                />
+              {/* LOGIN */}
+              <Animated.View
+                style={[styles.card, { opacity: loginOpacity, transform: [{ translateX: loginTranslateX }] }]}
+                pointerEvents={isRegisterMode ? 'none' : 'auto'}
+              >
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="#978d9d"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Senha"
+                    placeholderTextColor="#978d9d"
+                    secureTextEntry={!showPass}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <Pressable onPress={() => setShowPass(!showPass)} hitSlop={10} style={{ padding: 4 }}>
+                    <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
+                  </Pressable>
+                </View>
+
+                <Pressable onPress={() => showAlert('Recuperar', 'Instruções enviadas para seu e-mail.')} hitSlop={10}>
+                  <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+                </Pressable>
+
+                <Pressable 
+                  style={({ pressed }) => [styles.mainBtn, pressed && { opacity: 0.8 }]} 
+                  onPress={handleLogin} 
+                  disabled={loading}
+                >
+                  {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
+                </Pressable>
               </Animated.View>
 
-              {/* AUTH CARD */}
-              <View style={styles.authBox}>
-                
-                {/* LOGIN */}
-                <Animated.View
-                  style={[styles.card, { opacity: loginOpacity, transform: [{ translateX: loginTranslateX }] }]}
-                  pointerEvents={isRegisterMode ? 'none' : 'auto'}
+              {/* CADASTRO */}
+              <Animated.View
+                style={[styles.card, styles.absoluteCard, { opacity: registerOpacity, transform: [{ translateX: registerTranslateX }] }]}
+                pointerEvents={isRegisterMode ? 'auto' : 'none'}
+              >
+                <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
+                </View>
+
+                <Pressable 
+                  style={({ pressed }) => [styles.mainBtn, { backgroundColor: '#ba7ef4' }, pressed && { opacity: 0.8 }]} 
+                  onPress={handleRegister} 
+                  disabled={loading}
                 >
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      placeholderTextColor="#978d9d"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Senha"
-                      placeholderTextColor="#978d9d"
-                      secureTextEntry={!showPass}
-                      value={password}
-                      onChangeText={setPassword}
-                    />
-                    <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 4 }}>
-                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity onPress={() => showAlert('Recuperar', 'Instruções enviadas para seu e-mail.')}>
-                    <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
-                    {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
-                  </TouchableOpacity>
-                </Animated.View>
-
-                {/* CADASTRO */}
-                <Animated.View
-                  style={[styles.card, styles.absoluteCard, { opacity: registerOpacity, transform: [{ translateX: registerTranslateX }] }]}
-                  pointerEvents={isRegisterMode ? 'auto' : 'none'}
-                >
-                  <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
-                    <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
-                    <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
-                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
-                    <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
-                  </View>
-
-                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
-                  </TouchableOpacity>
-                </Animated.View>
-
-              </View>
-
-              {/* FOOTER */}
-              <View style={styles.footer}>
-                <TouchableOpacity onPress={toggleMode} activeOpacity={0.7}>
-                  <Text style={styles.toggleText}>
-                    {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
-                    <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
+                </Pressable>
+              </Animated.View>
 
             </View>
 
+            {/* FOOTER */}
+            <View style={styles.footer}>
+              <Pressable onPress={toggleMode} hitSlop={15}>
+                <Text style={styles.toggleText}>
+                  {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
+                  <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
+                </Text>
+              </Pressable>
+            </View>
+
           </View>
-        </ContentWrapper>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );

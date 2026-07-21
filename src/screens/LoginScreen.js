@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert, ActivityIndicator, Animated, Dimensions
+  KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Alert, ActivityIndicator, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,7 +12,23 @@ import { auth, db } from '../database/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
-// Função utilitária para exibir alertas de forma híbrida (Web + Mobile)
+// INJEÇÃO DE FONTE PARA CARREGAR ÍCONES NA WEB / MOVIEL WEB
+if (Platform.OS === 'web') {
+  const iconFontStyles = `@font-face {
+    src: url(${require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf')});
+    font-family: MaterialCommunityIcons;
+  }`;
+  const style = document.createElement('style');
+  style.type = 'text/css';
+  if (style.styleSheet) {
+    style.styleSheet.cssText = iconFontStyles;
+  } else {
+    style.appendChild(document.createTextNode(iconFontStyles));
+  }
+  document.head.appendChild(style);
+}
+
+// Alerta Híbrido (Web + Mobile)
 const showAlert = (title, message, buttons) => {
   if (Platform.OS === 'web') {
     window.alert(`${title}: ${message}`);
@@ -31,13 +47,12 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
 
-  // Campos de entrada
+  // Campos
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [username, setUsername] = useState('');
 
-  // ── CONTROLE DA ANIMAÇÃO DO CARD ──────────────────────────────────────────
   const animValue = useRef(new Animated.Value(0)).current;
 
   const toggleMode = () => {
@@ -51,17 +66,13 @@ export default function LoginScreen({ navigation }) {
     setIsRegisterMode(!isRegisterMode);
   };
 
-  // Interpolações de design
-  const logoSize = animValue.interpolate({ inputRange: [0, 1], outputRange: [180, 120] });
-  const logoTranslateY = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -15] });
+  const logoSize = animValue.interpolate({ inputRange: [0, 1], outputRange: [160, 110] });
+  const logoTranslateY = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
   const loginOpacity = animValue.interpolate({ inputRange: [0, 0.4], outputRange: [1, 0] });
   const registerOpacity = animValue.interpolate({ inputRange: [0.6, 1], outputRange: [0, 1] });
-  
-  // Animação horizontal fluida adaptada tanto para Mobile quanto para Web
-  const loginTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -350] });
-  const registerTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [350, 0] });
+  const loginTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [0, -320] });
+  const registerTranslateX = animValue.interpolate({ inputRange: [0, 1], outputRange: [320, 0] });
 
-  // ── LÓGICA DE LOGIN COM FIREBASE ──────────────────────────────────────────
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       return showAlert('Atenção', 'Preencha e-mail e senha.');
@@ -69,27 +80,23 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
 
     try {
-      // 1. Autentica no Firebase Authentication
       const userCredential = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       const user = userCredential.user;
-
-      // 2. Busca dados cadastrais estendidos da coleção 'users' no Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
 
       if (userDoc.exists()) {
-        signIn(userDoc.data()); // Atualiza o Contexto Global e libera as rotas do App
+        signIn(userDoc.data());
       } else {
-        showAlert('Erro', 'Perfil do usuário não encontrado no banco.');
+        showAlert('Erro', 'Perfil não encontrado no banco.');
       }
     } catch (e) {
-      console.log('Erro ao autenticar:', e);
+      console.log(e);
       showAlert('Acesso Negado', 'E-mail ou senha incorretos.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ── LÓGICA DE CADASTRO COM FIREBASE ────────────────────────────────────────
   const handleRegister = async () => {
     if (!nome.trim() || !username.trim() || !email.trim() || !password.trim()) {
       return showAlert('Erro', 'Preencha todos os campos.');
@@ -98,20 +105,17 @@ export default function LoginScreen({ navigation }) {
     const cleanedUsername = username.trim().toLowerCase();
 
     try {
-      // 1. Verifica se o username escolhido já pertence a outro usuário
       const q = query(collection(db, 'users'), where('username', '==', cleanedUsername));
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
         setLoading(false);
-        return showAlert('Erro', 'Este Username já está em uso.');
+        return showAlert('Erro', 'Username já cadastrado.');
       }
 
-      // 2. Cria o registro de Login e Senha no Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       const user = userCredential.user;
 
-      // 3. Grava o documento NoSQL com as informações do usuário
       const userData = {
         uid: user.uid,
         nome: nome.trim(),
@@ -123,16 +127,19 @@ export default function LoginScreen({ navigation }) {
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
-      showAlert('Sucesso!', 'Sua conta DressCode foi criada com sucesso.', [
+      showAlert('Sucesso!', 'Conta criada com sucesso!', [
         { text: 'Fazer Login', onPress: toggleMode }
       ]);
     } catch (e) {
-      console.log('Erro ao cadastrar:', e);
-      showAlert('Erro', 'Falha ao registrar conta ou e-mail já em uso.');
+      console.log(e);
+      showAlert('Erro', 'Falha ao registrar conta.');
     } finally {
       setLoading(false);
     }
   };
+
+  const ContentWrapper = Platform.OS === 'web' ? View : TouchableWithoutFeedback;
+  const wrapperProps = Platform.OS === 'web' ? { style: { flex: 1, width: '100%' } } : { onPress: Keyboard.dismiss };
 
   return (
     <View style={styles.container}>
@@ -140,12 +147,12 @@ export default function LoginScreen({ navigation }) {
       <LinearGradient colors={['#131313', '#2c0050', '#131313']} style={StyleSheet.absoluteFillObject} opacity={0.6} />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, width: '100%' }}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ContentWrapper {...wrapperProps}>
           <View style={styles.inner}>
 
             <View style={styles.responsiveWrapper}>
               
-              {/* HEADER / LOGO */}
+              {/* LOGO */}
               <Animated.View style={[styles.header, { transform: [{ translateY: logoTranslateY }] }]}>
                 <Animated.Image
                   source={require('../../logo-def-dresscode.png')}
@@ -154,16 +161,16 @@ export default function LoginScreen({ navigation }) {
                 />
               </Animated.View>
 
-              {/* CARD DE AUTENTICAÇÃO */}
+              {/* AUTH CARD */}
               <View style={styles.authBox}>
                 
-                {/* FORMULÁRIO DE LOGIN */}
+                {/* LOGIN */}
                 <Animated.View
                   style={[styles.card, { opacity: loginOpacity, transform: [{ translateX: loginTranslateX }] }]}
                   pointerEvents={isRegisterMode ? 'none' : 'auto'}
                 >
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" />
+                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
                     <TextInput
                       style={styles.input}
                       placeholder="Email"
@@ -171,11 +178,12 @@ export default function LoginScreen({ navigation }) {
                       value={email}
                       onChangeText={setEmail}
                       autoCapitalize="none"
+                      keyboardType="email-address"
                     />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" />
+                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
                     <TextInput
                       style={styles.input}
                       placeholder="Senha"
@@ -184,21 +192,21 @@ export default function LoginScreen({ navigation }) {
                       value={password}
                       onChangeText={setPassword}
                     />
-                    <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color="#978d9d" />
+                    <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 4 }}>
+                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={22} color="#978d9d" />
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity onPress={() => showAlert('Recuperar Senha', 'Insira seu e-mail para receber as instruções de redefinição.')}>
+                  <TouchableOpacity onPress={() => showAlert('Recuperar', 'Instruções enviadas para seu e-mail.')}>
                     <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
+                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
                     {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
                   </TouchableOpacity>
                 </Animated.View>
 
-                {/* FORMULÁRIO DE CADASTRO */}
+                {/* CADASTRO */}
                 <Animated.View
                   style={[styles.card, styles.absoluteCard, { opacity: registerOpacity, transform: [{ translateX: registerTranslateX }] }]}
                   pointerEvents={isRegisterMode ? 'auto' : 'none'}
@@ -206,35 +214,35 @@ export default function LoginScreen({ navigation }) {
                   <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="account-outline" size={20} color="#978d9d" />
+                    <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
                     <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="at" size={20} color="#978d9d" />
+                    <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
                     <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" />
-                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" />
+                    <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
+                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
                   </View>
 
                   <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" />
+                    <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
                     <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
                   </View>
 
-                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
+                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
                     {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
                   </TouchableOpacity>
                 </Animated.View>
 
               </View>
 
-              {/* FOOTER - BOTÃO DE ALTERNÂNCIA */}
+              {/* FOOTER */}
               <View style={styles.footer}>
-                <TouchableOpacity onPress={toggleMode}>
+                <TouchableOpacity onPress={toggleMode} activeOpacity={0.7}>
                   <Text style={styles.toggleText}>
                     {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
                     <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
@@ -245,13 +253,12 @@ export default function LoginScreen({ navigation }) {
             </View>
 
           </View>
-        </TouchableWithoutFeedback>
+        </ContentWrapper>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-// ── ESTILOS RESPONSIVOS E ADAPTADOS PARA WEB E MOBILE ───────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -264,10 +271,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     width: '100%',
   },
-  // Wrapper que limita a largura máxima na Web / PC mantendo o design centralizado
   responsiveWrapper: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 420,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -278,17 +284,17 @@ const styles = StyleSheet.create({
   },
   authBox: {
     width: '100%',
-    minHeight: 380,
+    minHeight: 360,
     justifyContent: 'center',
     position: 'relative',
-    overflow: 'hidden', // Evita barras de rolagem indesejadas na Web durante a animação
+    overflow: 'hidden',
   },
   card: {
     backgroundColor: '#160d22',
     borderColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderRadius: 20,
-    padding: 24,
+    padding: 22,
     width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
@@ -316,14 +322,14 @@ const styles = StyleSheet.create({
     height: 52,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   input: {
     flex: 1,
     color: '#e5e2e1',
     marginLeft: 10,
     fontSize: 15,
-    outlineStyle: 'none', // Remove a borda azul padrão de foco dos navegadores Web
+    outlineStyle: 'none',
   },
   forgotText: {
     color: '#978d9d',
@@ -339,7 +345,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 5,
-    cursor: 'pointer', // Adiciona o cursor de clique do mouse na Web
+    cursor: 'pointer',
   },
   btnText: {
     color: '#4a0080',
@@ -348,7 +354,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   footer: {
-    marginTop: 24,
+    marginTop: 20,
     paddingBottom: 20,
   },
   toggleText: {

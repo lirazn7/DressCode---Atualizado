@@ -2,9 +2,6 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useFonts } from 'expo-font';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-
 import SearchScreen from './src/screens/SearchScreen';
 
 // 1. O nosso Guarda-Chuva (Contexto)
@@ -51,16 +48,11 @@ function AppStack() {
 function Routes() {
   const { user, loadingContext } = useAuth();
 
-  // Carrega as fontes de vetor nativamente no build web/mobile
-  const [fontsLoaded] = useFonts({
-    ...MaterialCommunityIcons.font,
-  });
-
-  // Se o contexto ou as fontes ainda estiverem carregando, exibe a tela de splash
-  if (loadingContext || !fontsLoaded) {
+  // Enquanto verifica o AsyncStorage, mostra uma telinha de carregamento para não piscar o Login
+  if (loadingContext) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#131313' }}>
-        <ActivityIndicator size="large" color="#ddb7ff" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#5D1D7A' }}>
+        <ActivityIndicator size="large" color="#ed85ff" />
       </View>
     );
   }
@@ -72,7 +64,7 @@ function Routes() {
   );
 }
 
-// 🌐 O APP PRINCIPAL
+// 🌐 O APP PRINCIPAL: Abraça tudo!
 export default function App() {
   return (
     <AuthProvider>

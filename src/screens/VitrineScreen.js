@@ -285,12 +285,24 @@ const styles = StyleSheet.create({
   postContainer: { 
     width: '100%', 
     height: Platform.OS === 'web' ? 680 : windowHeight, 
-    justify: 'flex-end',
+    justifyContent: 'flex-end', // CORRIGIDO: Era 'justify', o correto é 'justifyContent'
     position: 'relative',
   },
   backgroundImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', resizeMode: 'cover' },
   gradientOverlay: { ...StyleSheet.absoluteFillObject },
-  contentOverlay: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingBottom: 110 },
+  
+  
+  contentOverlay: { 
+    position: 'absolute',
+    bottom: 100, 
+    left: 0,
+    right: 0,
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-end', 
+    paddingHorizontal: 20 
+  },
+  
   textContainer: { flex: 1, paddingRight: 20, marginBottom: 10 },
   userRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   postUsername: { color: '#ddb7ff', fontSize: 18, fontWeight: '700', marginRight: 12 },

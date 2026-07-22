@@ -4,11 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+// Apontamos para a rota de legado exigida pela nova SDK do Expo
+import * as FileSystem from 'expo-file-system/legacy';
+
 // ── IMPORTAÇÃO DA INFRA DO GOOGLE CLOUD ───────────────────────────
 import { db } from '../database/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, addDoc } from 'firebase/firestore';
-import { uploadImageAsync } from '../services/storageService';
 
 export default function CreatePostScreen({ navigation }) {
   const { user } = useAuth();
@@ -44,17 +46,27 @@ export default function CreatePostScreen({ navigation }) {
     console.log('🚀 Iniciando processamento do upload do look...');
 
     try {
-      // ── 1. UPLOAD DA IMAGEM PARA O FIREBASE STORAGE ────────────────────────
-      console.log('☁️ Enviando imagem para o Firebase Storage...');
-      const storagePath = `posts/${secureUserId}/${Date.now()}.jpg`;
-      const imageUrl = await uploadImageAsync(image, storagePath);
+      // ── 1. TRANSFORMAÇÃO DA IMAGEM EM TEXTO (BASE64) ───────────────────────
+      console.log('🔄 Convertendo arquivo físico para string Base64...');
 
+      // Trocamos FileSystem.EncodingType.Base64 por apenas 'base64' para evitar o erro de undefined
+      const base64Image = await FileSystem.readAsStringAsync(image, {
+        encoding: 'base64',
+      });
+
+      // Limpeza de quebras de linha dadas pelo OS
+      const cleanBase64 = base64Image.replace(/(?:\r\n|\r|\n)/g, '');
+
+      // Montamos o cabeçalho URI com a string limpa
+      const ext = image.substring(image.lastIndexOf('.') + 1);
+      const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const finalImageString = `data:${mimeType};base64,${cleanBase64}`;
       // ── 2. SALVAR O DOCUMENTO REAL NO CLOUD FIRESTORE ──────────────────────
       console.log('💾 Gravando documento completo na nuvem do Firestore...');
       await addDoc(collection(db, 'posts'), {
         userid: secureUserId,
         username: user?.username || 'user_dresscode',
-        imageuri: imageUrl, // Agora armazenamos apenas a URL do Storage, não mais Base64
+        imageuri: finalImageString, // O texto da imagem vai direto para o banco NoSQL!
         legenda: legenda.trim(),
         marcas: marcas.trim(),
         likes_count: 0,

@@ -5,8 +5,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 // ── IMPORTAÇÃO DA INFRAESTRUTURA DO GOOGLE CLOUD ───────────────────────────
 import { db } from '../database/firebase';
 import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function AdminScreen({ navigation }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,8 +43,9 @@ export default function AdminScreen({ navigation }) {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isAdmin) fetchUsers();
+    else setLoading(false);
+  }, [isAdmin]);
 
   /**
    * 🗑️ MÉTODO EDUCATIVO: EXCLUSÃO DE DOCUMENTO NoSQL
@@ -88,6 +93,18 @@ export default function AdminScreen({ navigation }) {
     </View>
   );
 
+  if (!isAdmin) {
+    return (
+      <View style={[styles.container, styles.deniedContainer]}>
+        <MaterialCommunityIcons name="shield-lock-outline" size={48} color="#ff5c5c" />
+        <Text style={styles.deniedText}>Acesso restrito a administradores.</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.deniedBtn}>
+          <Text style={styles.deniedBtnText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -121,6 +138,10 @@ export default function AdminScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#1a011b' },
+  deniedContainer: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 30 },
+  deniedText: { color: '#ffffffcc', fontSize: 15, textAlign: 'center', marginTop: 15, marginBottom: 25 },
+  deniedBtn: { backgroundColor: '#350238', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 12 },
+  deniedBtnText: { color: '#ed85ff', fontWeight: 'bold' },
   header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20, backgroundColor: '#350238' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   statsBar: { backgroundColor: '#ed85ff', padding: 10, alignItems: 'center' },

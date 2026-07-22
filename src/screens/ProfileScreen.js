@@ -324,7 +324,7 @@ export default function ProfileScreen({ route, navigation }) {
                 style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
                 onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
               >
-                <Image source={{ uri: item.imageuri }} style={styles.gridImg} />
+                <Image source={{ uri: item.imageuri }} style={styles.gridImg} resizeMode="cover" />
                 <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.postOverlay}>
                   <Text style={styles.postTag}>#Style</Text>
                 </LinearGradient>

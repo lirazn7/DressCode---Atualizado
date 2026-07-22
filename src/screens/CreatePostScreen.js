@@ -92,7 +92,7 @@ export default function CreatePostScreen({ navigation }) {
 
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-          <MaterialCommunityIcons name="close" size={26} color="#e5e2e1" />
+          <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Novo Look</Text>
         <TouchableOpacity onPress={handlePublish} disabled={loading || !image} style={styles.publishBtnWrapper}>

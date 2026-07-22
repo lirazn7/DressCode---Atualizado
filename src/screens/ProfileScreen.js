@@ -13,8 +13,8 @@ import * as ImagePicker from 'expo-image-picker';
 
 // ── IMPORTAÇÕES DA INFRAESTRUTURA DO GOOGLE CLOUD ───────────────────────────
 import { db } from '../database/firebase';
-import { 
-  doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy 
+import {
+  doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy
 } from 'firebase/firestore';
 import { toggleFollow } from '../services/postService';
 
@@ -67,12 +67,12 @@ export default function ProfileScreen({ route, navigation }) {
       // 2. Resgatar a vitrine de posts pessoais de forma cronológica
       const postsRef = collection(db, 'posts');
       const postsQuery = query(
-        postsRef, 
+        postsRef,
         where('userid', '==', profileUserId),
         orderBy('createdAt', 'desc')
       );
       const postsSnapshot = await getDocs(postsQuery);
-      
+
       const postsList = [];
       postsSnapshot.forEach((doc) => {
         postsList.push({ id: doc.id, ...doc.data() });
@@ -149,7 +149,7 @@ export default function ProfileScreen({ route, navigation }) {
     try {
       const userDocRef = doc(db, 'users', profileUserId);
       await updateDoc(userDocRef, { bio: editBioText.trim() });
-      
+
       setBio(editBioText);
       setIsEditing(false);
     } catch (error) {

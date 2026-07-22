@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, Image, Dimensions,
   TouchableOpacity, ActivityIndicator, Modal, TextInput, Platform, StatusBar, SafeAreaView,
-  KeyboardAvoidingView, Alert
+  KeyboardAvoidingView, Alert, RefreshControl
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // ── IMPORTAÇÃO DO SISTEMA DE ARQUIVOS DO EXPO (LEGADO DA SDK 54) ───────────
+import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 
 // ── IMPORTAÇÕES DA INFRAESTRUTURA DO GOOGLE CLOUD ───────────────────────────
@@ -15,7 +16,7 @@ import { db } from '../database/firebase';
 import { 
   doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy 
 } from 'firebase/firestore';
-import { uploadImageAsync } from '../services/storageService';
+import { toggleFollow } from '../services/postService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
@@ -38,6 +39,10 @@ export default function ProfileScreen({ route, navigation }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editBioText, setEditBioText] = useState('');
 
+  const [isFollowingProfile, setIsFollowingProfile] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   // Validação estrita se o perfil visualizado pertence ao usuário logado
   const isMyProfile = profileUserId === currentUserId;
 
@@ -45,9 +50,9 @@ export default function ProfileScreen({ route, navigation }) {
    * 📜 MÉTODO EDUCATIVO - BUSCA DE DADOS NO NOSQL
    * No Firestore, buscamos documentos individuais usando doc() e conjuntos usando queries.
    */
-  const fetchProfileData = async () => {
+  const fetchProfileData = async (isRefresh = false) => {
     if (!profileUserId) return;
-    setLoading(true);
+    if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
       // 1. Resgatar dados de perfil (Bio e Avatar) do documento do usuário
       const userDocRef = doc(db, 'users', profileUserId);
@@ -87,16 +92,55 @@ export default function ProfileScreen({ route, navigation }) {
         following: followingSnapshot.size
       });
 
+      // 4. Se estamos vendo o perfil de outra pessoa, checa se já seguimos ela
+      if (!isMyProfile && currentUserId) {
+        const relationQuery = query(
+          collection(db, 'followers'),
+          where('followerId', '==', currentUserId),
+          where('targetId', '==', profileUserId)
+        );
+        const relationSnap = await getDocs(relationQuery);
+        setIsFollowingProfile(!relationSnap.empty);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar perfil via Google Cloud:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     fetchProfileData();
   }, [profileUserId]);
+
+  const handlePullToRefresh = () => fetchProfileData(true);
+
+  /**
+   * 🤝 SEGUIR / DEIXAR DE SEGUIR
+   * Reaproveita a lógica já existente em postService, atualizando a UI de forma otimista.
+   */
+  const handleToggleFollow = async () => {
+    if (isMyProfile || !currentUserId || followLoading) return;
+
+    setFollowLoading(true);
+    const wasFollowing = isFollowingProfile;
+
+    // Atualização otimista para resposta instantânea
+    setIsFollowingProfile(!wasFollowing);
+    setStats((prev) => ({ ...prev, followers: prev.followers + (wasFollowing ? -1 : 1) }));
+
+    const success = await toggleFollow(currentUserId, profileUserId);
+
+    if (!success) {
+      // Reverte se a escrita no Firestore falhar
+      setIsFollowingProfile(wasFollowing);
+      setStats((prev) => ({ ...prev, followers: prev.followers + (wasFollowing ? 1 : -1) }));
+      Alert.alert('Erro', 'Não foi possível atualizar o status de seguidor.');
+    }
+    setFollowLoading(false);
+  };
 
   /**
    * ✍️ ATUALIZAÇÃO DA BIOGRAFIA
@@ -114,7 +158,8 @@ export default function ProfileScreen({ route, navigation }) {
   };
 
   /**
-   * 📸 UPLOAD DE FOTO DE PERFIL (FIREBASE STORAGE)
+   * 📸 UPLOAD DE FOTO DE PERFIL INTELIGENTE (BASE64)
+   * Eliminamos o uso de buckets pagos convertendo a imagem em texto puro!
    */
   const handleUpdateAvatar = async () => {
     if (!isMyProfile) return;
@@ -123,7 +168,7 @@ export default function ProfileScreen({ route, navigation }) {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1], // Mantém a proporção quadrada perfeita para avatares circulares
-      quality: 0.3,   // Compactação otimizada para upload
+      quality: 0.3,   // Compactação otimizada para o Firestore
     });
 
     if (!result.canceled) {
@@ -131,15 +176,22 @@ export default function ProfileScreen({ route, navigation }) {
       try {
         const localUri = result.assets[0].uri;
 
-        // Envia a imagem para o Firebase Storage e recupera a URL pública
-        const storagePath = `avatars/${currentUserId}.jpg`;
-        const finalAvatarUrl = await uploadImageAsync(localUri, storagePath);
+        // Leitura usando o recurso de legado exigido pela SDK do Expo Go
+        const base64Data = await FileSystem.readAsStringAsync(localUri, {
+          encoding: 'base64',
+        });
 
-        // Grava a URL diretamente no campo avatar_url do usuário
+        // Limpeza de espaços gerados pelo OS e montagem do cabeçalho da imagem
+        const cleanBase64 = base64Data.replace(/(?:\r\n|\r|\n)/g, '');
+        const ext = localUri.substring(localUri.lastIndexOf('.') + 1);
+        const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
+        const finalAvatarString = `data:${mimeType};base64,${cleanBase64}`;
+
+        // Grava a string diretamente no campo avatar_url do usuário
         const userDocRef = doc(db, 'users', currentUserId);
-        await updateDoc(userDocRef, { avatar_url: finalAvatarUrl });
+        await updateDoc(userDocRef, { avatar_url: finalAvatarString });
 
-        setAvatarUrl(finalAvatarUrl); // Atualiza instantaneamente a interface
+        setAvatarUrl(finalAvatarString); // Atualiza instantaneamente a interface
         Alert.alert("Sucesso", "Sua foto de perfil foi atualizada!");
 
       } catch (error) {
@@ -197,10 +249,31 @@ export default function ProfileScreen({ route, navigation }) {
         </View>
       </View>
 
-      {isMyProfile && (
+      {isMyProfile ? (
         <TouchableOpacity style={styles.editActionBtn} onPress={() => { setEditBioText(bio); setIsEditing(true); }}>
           <MaterialCommunityIcons name="pencil-outline" size={16} color="#ddb7ff" />
           <Text style={styles.editActionText}>Editar Perfil</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={isFollowingProfile ? styles.followingActionBtn : styles.followActionBtn}
+          onPress={handleToggleFollow}
+          disabled={followLoading}
+        >
+          {followLoading ? (
+            <ActivityIndicator color={isFollowingProfile ? '#ddb7ff' : '#160d22'} size="small" />
+          ) : (
+            <>
+              <MaterialCommunityIcons
+                name={isFollowingProfile ? 'account-check-outline' : 'account-plus-outline'}
+                size={16}
+                color={isFollowingProfile ? '#ddb7ff' : '#160d22'}
+              />
+              <Text style={isFollowingProfile ? styles.followingActionText : styles.followActionText}>
+                {isFollowingProfile ? 'Seguindo' : 'Seguir'}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       )}
 
@@ -232,6 +305,17 @@ export default function ProfileScreen({ route, navigation }) {
           numColumns={2}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="hanger" size={40} color="#443a52" />
+              <Text style={styles.emptyStateText}>
+                {isMyProfile ? 'Você ainda não publicou nenhum look.' : 'Nenhum look publicado ainda.'}
+              </Text>
+            </View>
+          }
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handlePullToRefresh} tintColor="#ba7ef4" />
+          }
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.columnStyle}
           renderItem={({ item, index }) => (
@@ -326,6 +410,12 @@ const styles = StyleSheet.create({
   statLab: { color: '#978d9d', fontSize: 10, letterSpacing: 2, marginTop: 4 },
   editActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#160d22', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25, borderWidth: 1, borderColor: 'rgba(221,183,255,0.2)' },
   editActionText: { color: '#e5e2e1', fontSize: 12, fontWeight: 'bold', marginLeft: 8 },
+  followActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ba7ef4', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 25, minWidth: 110, justifyContent: 'center' },
+  followActionText: { color: '#160d22', fontSize: 12, fontWeight: 'bold', marginLeft: 8 },
+  followingActionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#160d22', paddingHorizontal: 24, paddingVertical: 10, borderRadius: 25, borderWidth: 1, borderColor: 'rgba(221,183,255,0.3)', minWidth: 110, justifyContent: 'center' },
+  followingActionText: { color: '#ddb7ff', fontSize: 12, fontWeight: 'bold', marginLeft: 8 },
+  emptyState: { alignItems: 'center', paddingVertical: 50, paddingHorizontal: 40 },
+  emptyStateText: { color: '#978d9d', fontSize: 13, marginTop: 10, textAlign: 'center' },
   sectionDivider: { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 20, marginVertical: 30 },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: '#978d9d', fontSize: 10, letterSpacing: 3, marginHorizontal: 15 },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, Text, TextInput, StyleSheet, FlatList, Image, 
   TouchableOpacity, ActivityIndicator, SafeAreaView, StatusBar, Alert, Platform 
@@ -16,23 +16,34 @@ export default function SearchScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
+  const debounceRef = useRef(null);
 
   /**
    * 🔍 SISTEMA DE BUSCA NOSQL (PREFIXO DE TEXTO)
    * Usamos a técnica de corte de string \uf8ff para buscar usuários
    * cujo username comece exatamente com os caracteres digitados.
+   * A consulta ao Firestore é feita com debounce para evitar uma leitura por tecla digitada.
    */
-  const handleSearch = async (text) => {
+  const handleSearch = (text) => {
     setSearchQuery(text);
-    
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
     const cleanText = text.trim().toLowerCase(); // Normaliza o texto para minúsculo
 
     if (cleanText.length < 2) {
       setResults([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
+    debounceRef.current = setTimeout(() => {
+      runSearch(cleanText);
+    }, 400);
+  };
+
+  const runSearch = async (cleanText) => {
     try {
       console.log(`🔎 Buscando usuários que começam com: @${cleanText}`);
       

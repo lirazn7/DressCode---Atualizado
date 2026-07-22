@@ -8,7 +8,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 // ── IMPORTAÇÃO DO SISTEMA DE ARQUIVOS DO EXPO (LEGADO DA SDK 54) ───────────
-import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 
 // ── IMPORTAÇÕES DA INFRAESTRUTURA DO GOOGLE CLOUD ───────────────────────────
@@ -16,6 +15,7 @@ import { db } from '../database/firebase';
 import { 
   doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy 
 } from 'firebase/firestore';
+import { uploadImageAsync } from '../services/storageService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
@@ -114,8 +114,7 @@ export default function ProfileScreen({ route, navigation }) {
   };
 
   /**
-   * 📸 UPLOAD DE FOTO DE PERFIL INTELIGENTE (BASE64)
-   * Eliminamos o uso de buckets pagos convertendo a imagem em texto puro!
+   * 📸 UPLOAD DE FOTO DE PERFIL (FIREBASE STORAGE)
    */
   const handleUpdateAvatar = async () => {
     if (!isMyProfile) return;
@@ -124,7 +123,7 @@ export default function ProfileScreen({ route, navigation }) {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1], // Mantém a proporção quadrada perfeita para avatares circulares
-      quality: 0.3,   // Compactação otimizada para o Firestore
+      quality: 0.3,   // Compactação otimizada para upload
     });
 
     if (!result.canceled) {
@@ -132,22 +131,15 @@ export default function ProfileScreen({ route, navigation }) {
       try {
         const localUri = result.assets[0].uri;
 
-        // Leitura usando o recurso de legado exigido pela SDK do Expo Go
-        const base64Data = await FileSystem.readAsStringAsync(localUri, {
-          encoding: 'base64',
-        });
+        // Envia a imagem para o Firebase Storage e recupera a URL pública
+        const storagePath = `avatars/${currentUserId}.jpg`;
+        const finalAvatarUrl = await uploadImageAsync(localUri, storagePath);
 
-        // Limpeza de espaços gerados pelo OS e montagem do cabeçalho da imagem
-        const cleanBase64 = base64Data.replace(/(?:\r\n|\r|\n)/g, '');
-        const ext = localUri.substring(localUri.lastIndexOf('.') + 1);
-        const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
-        const finalAvatarString = `data:${mimeType};base64,${cleanBase64}`;
-
-        // Grava a string diretamente no campo avatar_url do usuário
+        // Grava a URL diretamente no campo avatar_url do usuário
         const userDocRef = doc(db, 'users', currentUserId);
-        await updateDoc(userDocRef, { avatar_url: finalAvatarString });
+        await updateDoc(userDocRef, { avatar_url: finalAvatarUrl });
 
-        setAvatarUrl(finalAvatarString); // Atualiza instantaneamente a interface
+        setAvatarUrl(finalAvatarUrl); // Atualiza instantaneamente a interface
         Alert.alert("Sucesso", "Sua foto de perfil foi atualizada!");
 
       } catch (error) {

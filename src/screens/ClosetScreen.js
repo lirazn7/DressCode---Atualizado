@@ -8,15 +8,13 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 
-// ── SISTEMA DE ARQUIVOS LEGADO DO EXPO (SDK 54) ────────────────────────────
-import * as FileSystem from 'expo-file-system/legacy';
-
 // ── INFRAESTRUTURA DO GOOGLE CLOUD ─────────────────────────────────────────
 import { db } from '../database/firebase';
 import { 
   collection, addDoc, getDocs, query, where, orderBy 
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
+import { uploadImageAsync } from '../services/storageService';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 55) / 2;
@@ -156,7 +154,7 @@ export default function ClosetScreen({ navigation }) {
   };
 
   /**
-   * 💾 SALVAMENTO REAL EM BASE64 NO FIRESTORE
+   * 💾 SALVAMENTO DA PEÇA (FIREBASE STORAGE)
    */
   const confirmUpload = async () => {
     if (!tempImage || !secureUserId) return;
@@ -164,18 +162,12 @@ export default function ClosetScreen({ navigation }) {
     setUploading(true);
     
     try {
-      // Conversão segura do arquivo para string usando a rota legacy da SDK 54
-      const base64Data = await FileSystem.readAsStringAsync(tempImage.uri, {
-        encoding: 'base64',
-      });
-
-      const cleanBase64 = base64Data.replace(/(?:\r\n|\r|\n)/g, '');
-      const ext = tempImage.uri.substring(tempImage.uri.lastIndexOf('.') + 1);
-      const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
-      const finalImageString = `data:${mimeType};base64,${cleanBase64}`;
+      // Envia a imagem para o Firebase Storage e recupera a URL pública
+      const storagePath = `closet/${secureUserId}/${Date.now()}.jpg`;
+      const imageUrl = await uploadImageAsync(tempImage.uri, storagePath);
 
       const dbPayload = {
-        imageuri: finalImageString,
+        imageuri: imageUrl,
         legenda: pieceLegenda.trim(),
         userid: secureUserId,
         createdAt: new Date().toISOString()

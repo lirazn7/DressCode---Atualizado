@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,8 +23,25 @@ export default function LoginScreen({ navigation }) {
   const [nome, setNome] = useState('');
   const [username, setUsername] = useState('');
 
+  // Motion do card: translada para o lado e faz fade ao trocar Login/Registro
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   const toggleMode = () => {
-    setIsRegisterMode(!isRegisterMode);
+    const direction = isRegisterMode ? 1 : -1; // saindo do registro volta pra direita, indo pro registro sai pra esquerda
+
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: direction * 40, duration: 160, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
+    ]).start(() => {
+      setIsRegisterMode(!isRegisterMode);
+      slideAnim.setValue(direction * -40);
+
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true }),
+        Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+      ]).start();
+    });
   };
 
   const handleLogin = async () => {
@@ -122,6 +139,7 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <View style={styles.card}>
+            <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}>
             {!isRegisterMode ? (
               <View style={styles.formContainer}>
                 <View style={styles.inputWrapper}>
@@ -189,6 +207,7 @@ export default function LoginScreen({ navigation }) {
                 </TouchableOpacity>
               </View>
             )}
+            </Animated.View>
           </View>
 
           <View style={styles.footer}>

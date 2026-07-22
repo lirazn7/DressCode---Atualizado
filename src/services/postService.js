@@ -1,14 +1,20 @@
 import { db } from '../database/firebase';
 import { 
   collection, getDocs, doc, getDoc, addDoc, updateDoc, 
-  query, where, orderBy, deleteDoc, arrayUnion, arrayRemove, increment 
+  query, where, orderBy, deleteDoc, arrayUnion, arrayRemove, increment,
+  limit, startAfter
 } from 'firebase/firestore';
 
-export const getPosts = async (currentUserId) => {
+const PAGE_SIZE = 10;
+
+export const getPosts = async (currentUserId, lastDoc = null) => {
   try {
     const postsRef = collection(db, 'posts');
-    const q = query(postsRef, orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
+    const baseQuery = lastDoc
+      ? query(postsRef, orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(PAGE_SIZE))
+      : query(postsRef, orderBy('createdAt', 'desc'), limit(PAGE_SIZE));
+
+    const querySnapshot = await getDocs(baseQuery);
 
     const postsList = [];
 
@@ -36,10 +42,13 @@ export const getPosts = async (currentUserId) => {
       });
     });
 
-    return postsList;
+    const newLastDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    const hasMore = querySnapshot.docs.length === PAGE_SIZE;
+
+    return { posts: postsList, lastDoc: newLastDoc, hasMore };
   } catch (error) {
     console.log("Erro no serviço getPosts:", error);
-    return [];
+    return { posts: [], lastDoc: null, hasMore: false };
   }
 };
 

@@ -20,21 +20,24 @@ export default function VitrineScreen({ navigation }) {
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const [showComments, setShowComments] = useState(false);
   const [commentList, setCommentList] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [activePostId, setActivePostId] = useState(null);
   const [fullImage, setFullImage] = useState(null);
 
-  // Busca os dados medindo o desempenho em milissegundos (RNF01)
+  // Busca a primeira página do feed (RNF01)
   const fetchPosts = async () => {
     try {
       const secureUserId = user?.uid || user?.id;
       if (!secureUserId) { setLoading(false); return; }
 
       const tempoInicio = Date.now();
-      
-      const dadosDoBanco = await getPosts(secureUserId); 
+
+      const { posts: dadosDoBanco, lastDoc: novoLastDoc, hasMore: maisPosts } = await getPosts(secureUserId);
 
       const tempoFim = Date.now();
       const tempoTotal = tempoFim - tempoInicio;
@@ -42,11 +45,31 @@ export default function VitrineScreen({ navigation }) {
       console.log(`⏱️ Tempo de carregamento da Vitrine via Google Cloud: ${tempoTotal} ms`);
 
       setPosts(dadosDoBanco || []);
+      setLastDoc(novoLastDoc);
+      setHasMore(maisPosts);
     } catch (error) {
       console.log("Erro ao carregar posts:", error);
       setPosts([]); 
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Busca a próxima página ao chegar no fim do feed
+  const fetchMorePosts = async () => {
+    const secureUserId = user?.uid || user?.id;
+    if (!secureUserId || loadingMore || !hasMore || !lastDoc) return;
+
+    setLoadingMore(true);
+    try {
+      const { posts: novosPosts, lastDoc: novoLastDoc, hasMore: maisPosts } = await getPosts(secureUserId, lastDoc);
+      setPosts(currentPosts => [...currentPosts, ...(novosPosts || [])]);
+      setLastDoc(novoLastDoc);
+      setHasMore(maisPosts);
+    } catch (error) {
+      console.log("Erro ao carregar mais posts:", error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -202,6 +225,11 @@ export default function VitrineScreen({ navigation }) {
           showsVerticalScrollIndicator={false}
           bounces={false}
           style={{ flex: 1, width: '100%' }}
+          onEndReached={fetchMorePosts}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={loadingMore ? (
+            <ActivityIndicator size="small" color="#ddb7ff" style={{ marginVertical: 20 }} />
+          ) : null}
         />
 
         {/* NAVEGAÇÃO INFERIOR (TAB BAR) */}

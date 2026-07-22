@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, StatusBar, Image,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Animated, Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -13,10 +13,12 @@ import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
+  const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [showLoader, setShowLoader] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,6 +28,42 @@ export default function LoginScreen({ navigation }) {
   // Motion do card: translada para o lado e faz fade ao trocar Login/Registro
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Motion pós-login: card some, logo desce/aumenta pro centro, depois some e o loader aparece
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const logoTranslateY = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(1)).current;
+  const logoOpacity = useRef(new Animated.Value(1)).current;
+  const loaderOpacity = useRef(new Animated.Value(0)).current;
+  const headerLayoutRef = useRef(null);
+
+  const handleHeaderLayout = (e) => {
+    headerLayoutRef.current = e.nativeEvent.layout;
+  };
+
+  const runWelcomeTransition = (userData) => {
+    const layout = headerLayoutRef.current;
+    // Calcula o quanto a logo precisa descer para ficar centralizada verticalmente na tela
+    const targetTranslateY = layout
+      ? (SCREEN_HEIGHT / 2) - (layout.y + layout.height / 2)
+      : SCREEN_HEIGHT * 0.3;
+
+    Animated.parallel([
+      Animated.timing(cardOpacity, { toValue: 0, duration: 450, useNativeDriver: true }),
+      Animated.timing(logoTranslateY, { toValue: targetTranslateY, duration: 700, useNativeDriver: true }),
+      Animated.timing(logoScale, { toValue: 1.7, duration: 700, useNativeDriver: true }),
+    ]).start(() => {
+      // Segura a logo grande e centralizada por alguns segundos
+      setTimeout(() => {
+        Animated.timing(logoOpacity, { toValue: 0, duration: 400, useNativeDriver: true }).start(() => {
+          setShowLoader(true);
+          Animated.timing(loaderOpacity, { toValue: 1, duration: 300, useNativeDriver: true }).start(() => {
+            setTimeout(() => signIn(userData), 500);
+          });
+        });
+      }, 1400);
+    });
+  };
 
   const toggleMode = () => {
     const direction = isRegisterMode ? 1 : -1; // saindo do registro volta pra direita, indo pro registro sai pra esquerda
@@ -56,7 +94,7 @@ export default function LoginScreen({ navigation }) {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
 
       if (userDoc.exists()) {
-        signIn(userDoc.data());
+        runWelcomeTransition(userDoc.data());
       } else {
         Alert.alert('Erro', 'Perfil não encontrado no banco.');
       }
@@ -130,15 +168,21 @@ export default function LoginScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <View style={styles.inner}>
           
-          <View style={styles.header}>
+          <Animated.View
+            style={[
+              styles.header,
+              { transform: [{ translateY: logoTranslateY }, { scale: logoScale }], opacity: logoOpacity }
+            ]}
+            onLayout={handleHeaderLayout}
+          >
             <Image
               source={require('../../logo-def-dresscode.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />
-          </View>
+          </Animated.View>
 
-          <View style={styles.card}>
+          <Animated.View style={[styles.card, { opacity: cardOpacity }]}>
             <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}>
             {!isRegisterMode ? (
               <View style={styles.formContainer}>
@@ -208,19 +252,25 @@ export default function LoginScreen({ navigation }) {
               </View>
             )}
             </Animated.View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.footer}>
+          <Animated.View style={[styles.footer, { opacity: cardOpacity }]}>
             <TouchableOpacity onPress={toggleMode}>
               <Text style={styles.toggleText}>
                 {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
                 <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
               </Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
         </View>
       </KeyboardAvoidingView>
+
+      {showLoader && (
+        <Animated.View style={[styles.loaderOverlay, { opacity: loaderOpacity }]}>
+          <ActivityIndicator size="large" color="#ddb7ff" />
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -229,6 +279,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#131313',
+  },
+  loaderOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   keyboardView: {
     flex: 1,

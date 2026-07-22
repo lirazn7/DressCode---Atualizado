@@ -8,7 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 import { auth, db } from '../database/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
 export default function LoginScreen({ navigation }) {
@@ -48,6 +48,19 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Acesso Negado', 'E-mail ou senha incorretos.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      return Alert.alert('Atenção', 'Digite seu e-mail no campo acima para recuperar a senha.');
+    }
+    try {
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      Alert.alert('Verifique seu e-mail', 'Enviamos um link de recuperação de senha para o seu e-mail.');
+    } catch (e) {
+      console.log(e);
+      Alert.alert('Erro', 'Não foi possível enviar o e-mail de recuperação. Verifique o e-mail informado.');
     }
   };
 
@@ -139,7 +152,7 @@ export default function LoginScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
 
-                <TouchableOpacity onPress={() => Alert.alert('Recuperar', 'Instruções enviadas para seu e-mail.')}>
+                <TouchableOpacity onPress={handleForgotPassword}>
                   <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
                 </TouchableOpacity>
 

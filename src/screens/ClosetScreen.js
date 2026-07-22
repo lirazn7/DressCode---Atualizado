@@ -208,150 +208,164 @@ export default function ClosetScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={handleBack}>
-          <MaterialCommunityIcons name={viewMode === 'home' ? "menu" : "arrow-left"} size={28} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.topLogo}>DressCode</Text>
-        <TouchableOpacity onPress={() => {
-          if (viewMode === 'home') { setModalTarget('collection'); setShowCreateModal(true); }
-          else if (viewMode === 'pieces_home') { setModalTarget('piece_cat'); setShowCreateModal(true); }
-          else if (viewMode === 'catalog' || viewMode === 'piece_detail') handlePickImage();
-        }}>
-          <MaterialCommunityIcons 
-            name={(viewMode === 'catalog' || viewMode === 'piece_detail') ? "camera-plus" : "plus-box-outline"} 
-            size={26} color="#ddb7ff" 
-          />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={handleBack}>
+            <MaterialCommunityIcons name={viewMode === 'home' ? "menu" : "arrow-left"} size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.topLogo}>DressCode</Text>
+          <TouchableOpacity onPress={() => {
+            if (viewMode === 'home') { setModalTarget('collection'); setShowCreateModal(true); }
+            else if (viewMode === 'pieces_home') { setModalTarget('piece_cat'); setShowCreateModal(true); }
+            else if (viewMode === 'catalog' || viewMode === 'piece_detail') handlePickImage();
+          }}>
+            <MaterialCommunityIcons 
+              name={(viewMode === 'catalog' || viewMode === 'piece_detail') ? "camera-plus" : "plus-box-outline"} 
+              size={26} color="#ddb7ff" 
+            />
+          </TouchableOpacity>
+        </View>
 
-      {loading && <ActivityIndicator size="large" color="#ba7ef4" style={{ flex: 1 }} />}
+        {loading && <ActivityIndicator size="large" color="#ba7ef4" style={{ flex: 1 }} />}
 
-      {!loading && viewMode === 'home' && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Meu Closet</Text>
-            <Text style={styles.heroSub}>Curadoria Pessoal</Text>
-          </View>
-          <View style={styles.sectionDivider}>
-            <View style={styles.dividerLine} /><Text style={styles.dividerText}>COLEÇÕES</Text><View style={styles.dividerLine} />
-          </View>
-          <View style={styles.gridContainer}>
-            {catalogs.map((cat, index) => (
-              <TouchableOpacity key={cat.id} style={[styles.categoryCard, index % 3 === 2 && styles.wideCard]} onPress={() => openContent(cat, 'collection')}>
-                <Image source={{ uri: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1000' }} style={styles.catImg} />
-                <View style={index % 3 === 2 ? styles.glassInfoWide : styles.glassInfo}>
-                  <Text style={styles.catName}>{cat.emoji} {cat.nome}</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#ddb7ff" />
-                </View>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.wideCard} onPress={() => setViewMode('pieces_home')}>
-              <Image source={{ uri: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1000' }} style={styles.catImg} />
-              <View style={styles.glassInfoWide}>
-                <Text style={styles.catName}>Peças Individuais</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color="#ddb7ff" />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      )}
-
-      {!loading && viewMode === 'pieces_home' && (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.heroSection}>
-            <Text style={styles.heroTitle}>Inventário</Text>
-            <Text style={styles.heroSub}>Suas peças por estação</Text>
-          </View>
-          <View style={styles.gridContainer}>
-            {pieceCategories.map((cat) => (
-              <TouchableOpacity key={cat.id} style={styles.wideCard} onPress={() => openContent(cat, 'piece_cat')}>
+        {!loading && viewMode === 'home' && (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.heroSection}>
+              <Text style={styles.heroTitle}>Meu Closet</Text>
+              <Text style={styles.heroSub}>Curadoria Pessoal</Text>
+            </View>
+            <View style={styles.sectionDivider}>
+              <View style={styles.dividerLine} /><Text style={styles.dividerText}>COLEÇÕES</Text><View style={styles.dividerLine} />
+            </View>
+            <View style={styles.gridContainer}>
+              {catalogs.map((cat, index) => (
+                <TouchableOpacity key={cat.id} style={[styles.categoryCard, index % 3 === 2 && styles.wideCard]} onPress={() => openContent(cat, 'collection')}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?q=80&w=1000' }} style={styles.catImg} />
+                  <View style={index % 3 === 2 ? styles.glassInfoWide : styles.glassInfo}>
+                    <Text style={styles.catName}>{cat.emoji} {cat.nome}</Text>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color="#ddb7ff" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity style={styles.wideCard} onPress={() => setViewMode('pieces_home')}>
+                <Image source={{ uri: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?q=80&w=1000' }} style={styles.catImg} />
                 <View style={styles.glassInfoWide}>
-                  <Text style={styles.catName}>{cat.emoji} {cat.nome}</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={20} color="#ddb7ff" />
+                  <Text style={styles.catName}>Peças Individuais</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={20} color="#ddb7ff" />
                 </View>
               </TouchableOpacity>
-            ))}
+            </View>
+          </ScrollView>
+        )}
+
+        {!loading && viewMode === 'pieces_home' && (
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.heroSection}>
+              <Text style={styles.heroTitle}>Minhas Peças</Text>
+              <Text style={styles.heroSub}>Catálogo Geral</Text>
+            </View>
+            <View style={styles.sectionDivider}>
+              <View style={styles.dividerLine} /><Text style={styles.dividerText}>CATEGORIAS</Text><View style={styles.dividerLine} />
+            </View>
+            <View style={styles.gridContainer}>
+              {pieceCategories.map((cat, index) => (
+                <TouchableOpacity key={cat.id} style={[styles.categoryCard, index % 3 === 2 && styles.wideCard]} onPress={() => openContent(cat, 'piece_cat')}>
+                  <Image source={{ uri: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=1000' }} style={styles.catImg} />
+                  <View style={index % 3 === 2 ? styles.glassInfoWide : styles.glassInfo}>
+                    <Text style={styles.catName}>{cat.emoji} {cat.nome}</Text>
+                    <MaterialCommunityIcons name="chevron-right" size={20} color="#ddb7ff" />
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        )}
+
+        {!loading && (viewMode === 'catalog' || viewMode === 'piece_detail') && (
+          <FlatList
+            data={itemsList}
+            numColumns={2}
+            keyExtractor={(item) => item.id}
+            columnWrapperStyle={styles.columnStyle}
+            contentContainerStyle={styles.listContent}
+            ListHeaderComponent={
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailTitle}>{selectedItem?.emoji} {selectedItem?.nome.toUpperCase()}</Text>
+                <Text style={styles.detailSub}>{itemsList.length} ITENS SALVOS</Text>
+              </View>
+            }
+            renderItem={({ item, index }) => (
+              <View style={[styles.itemCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}>
+                <Image source={{ uri: item.imageuri }} style={styles.itemImg} />
+                {item.legenda && (
+                  <View style={styles.itemFooter}>
+                    <Text style={styles.itemLegenda}>{item.legenda}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        )}
+
+        {/* BOTTOM NAV */}
+        <View style={styles.bottomNavContainer}>
+          <View style={styles.bottomNav}>
+            <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}><MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Search')}><MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" /></TouchableOpacity>
+            <TouchableOpacity style={styles.centerAddBtn} onPress={() => navigation.navigate('CreatePost')}><LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.addBtnGradient}><MaterialCommunityIcons name="plus" size={32} color="#fff" /></LinearGradient></TouchableOpacity>
+            <TouchableOpacity><MaterialCommunityIcons name="hanger" size={26} color="#ddb7ff" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}><MaterialCommunityIcons name="account-outline" size={26} color="#ffffff60" /></TouchableOpacity>
           </View>
-        </ScrollView>
-      )}
-
-      {!loading && (viewMode === 'catalog' || viewMode === 'piece_detail') && (
-        <FlatList
-          data={itemsList}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnStyle}
-          ListHeaderComponent={
-            <View style={styles.detailHeader}>
-              <Text style={styles.detailTitle}>{selectedItem?.emoji} {selectedItem?.nome.toUpperCase()}</Text>
-              <Text style={styles.detailSub}>{itemsList.length} ITENS SALVOS</Text>
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <View style={[styles.itemCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}>
-              <Image source={{ uri: item.imageuri }} style={styles.itemImg} />
-              {item.legenda && (
-                <View style={styles.itemFooter}>
-                  <Text style={styles.itemLegenda}>{item.legenda}</Text>
-                </View>
-              )}
-            </View>
-          )}
-        />
-      )}
-
-      {/* BOTTOM NAV */}
-      <View style={styles.bottomNavContainer}>
-        <View style={styles.bottomNav}>
-          <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}><MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" /></TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')}><MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" /></TouchableOpacity>
-          <TouchableOpacity style={styles.centerAddBtn} onPress={() => navigation.navigate('CreatePost')}><LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.addBtnGradient}><MaterialCommunityIcons name="plus" size={32} color="#fff" /></LinearGradient></TouchableOpacity>
-          <TouchableOpacity><MaterialCommunityIcons name="hanger" size={26} color="#ddb7ff" /></TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })}><MaterialCommunityIcons name="account-outline" size={26} color="#ffffff60" /></TouchableOpacity>
         </View>
-      </View>
 
-      {/* MODAL CRIAR */}
-      <Modal visible={showCreateModal} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior="padding" style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{modalTarget === 'collection' ? 'Nova Coleção' : 'Nova Categoria'}</Text>
-            <TextInput style={styles.emojiInput} value={newEmoji} onChangeText={setNewEmoji} maxLength={2} />
-            <TextInput style={styles.textInput} placeholder="Nome" placeholderTextColor="#978d9d" value={newName} onChangeText={setNewName} />
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)}><Text style={{ color: '#978d9d' }}>Cancelar</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleCreateNew}><Text style={styles.saveBtnText}>Criar</Text></TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+        {/* MODAL CRIAR */}
+        <Modal visible={showCreateModal} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior="padding" style={styles.modalContent}>
+              <Text style={styles.modalTitle}>{modalTarget === 'collection' ? 'Nova Coleção' : 'Nova Categoria'}</Text>
+              <TextInput style={styles.emojiInput} value={newEmoji} onChangeText={setNewEmoji} maxLength={2} />
+              <TextInput style={styles.textInput} placeholder="Nome" placeholderTextColor="#978d9d" value={newName} onChangeText={setNewName} />
+              <View style={styles.modalActions}>
+                <TouchableOpacity onPress={() => setShowCreateModal(false)}><Text style={{ color: '#978d9d' }}>Cancelar</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={handleCreateNew}><Text style={styles.saveBtnText}>Criar</Text></TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
 
-      {/* MODAL UPLOAD */}
-      <Modal visible={showUploadModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior="padding" style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Detalhes da Peça</Text>
-            {tempImage && <Image source={{ uri: tempImage.uri }} style={styles.previewImg} />}
-            <TextInput style={styles.textInput} placeholder="Nome da peça (Ex: Tênis Branco)" placeholderTextColor="#978d9d" value={pieceLegenda} onChangeText={setPieceLegenda} />
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setShowUploadModal(false)}><Text style={{ color: '#978d9d' }}>Cancelar</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={confirmUpload}><Text style={styles.saveBtnText}>Salvar</Text></TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        {/* MODAL UPLOAD */}
+        <Modal visible={showUploadModal} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior="padding" style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Detalhes da Peça</Text>
+              {tempImage && <Image source={{ uri: tempImage.uri }} style={styles.previewImg} />}
+              <TextInput style={styles.textInput} placeholder="Nome da peça (Ex: Tênis Branco)" placeholderTextColor="#978d9d" value={pieceLegenda} onChangeText={setPieceLegenda} />
+              <View style={styles.modalActions}>
+                <TouchableOpacity onPress={() => setShowUploadModal(false)}><Text style={{ color: '#978d9d' }}>Cancelar</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.saveBtn} onPress={confirmUpload}><Text style={styles.saveBtnText}>Salvar</Text></TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#131313' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20 },
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20, width: '100%' },
   topLogo: { color: '#e5e2e1', fontSize: 18, fontStyle: 'italic', fontWeight: 'bold' },
   scrollContent: { paddingBottom: 150 },
   heroSection: { padding: 30, paddingTop: 10 },

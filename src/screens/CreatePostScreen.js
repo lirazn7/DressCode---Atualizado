@@ -87,73 +87,83 @@ export default function CreatePostScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" />
 
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-          <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Novo Look</Text>
-        <TouchableOpacity onPress={handlePublish} disabled={loading || !image} style={styles.publishBtnWrapper}>
-          {loading ? (
-            <View style={[styles.publishBtn, styles.publishBtnDisabled]}>
-              <ActivityIndicator color="#ddb7ff" size="small" />
-            </View>
-          ) : (
-            <LinearGradient
-              colors={image ? ['#ba7ef4', '#4b0082'] : ['#2a2233', '#2a2233']}
-              style={styles.publishBtn}
-            >
-              <Text style={[styles.publishText, !image && styles.publishTextDisabled]}>Publicar</Text>
-            </LinearGradient>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.imagePicker} onPress={pickImage} disabled={loading}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.previewImg} />
-          ) : (
-            <View style={styles.imagePickerEmpty}>
-              <MaterialCommunityIcons name="camera-plus-outline" size={38} color="#ba7ef4" />
-              <Text style={styles.imagePickerText}>Adicionar Foto</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.sectionDivider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>DETALHES DO LOOK</Text>
-          <View style={styles.dividerLine} />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Novo Look</Text>
+          <TouchableOpacity onPress={handlePublish} disabled={loading || !image} style={styles.publishBtnWrapper}>
+            {loading ? (
+              <View style={[styles.publishBtn, styles.publishBtnDisabled]}>
+                <ActivityIndicator color="#ddb7ff" size="small" />
+              </View>
+            ) : (
+              <LinearGradient
+                colors={image ? ['#ba7ef4', '#4b0082'] : ['#2a2233', '#2a2233']}
+                style={styles.publishBtn}
+              >
+                <Text style={[styles.publishText, !image && styles.publishTextDisabled]}>Publicar</Text>
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <TextInput
-          style={[styles.input, styles.inputMultiline]}
-          placeholder="Escreva uma legenda para o seu look..."
-          placeholderTextColor="#978d9d"
-          multiline
-          value={legenda}
-          onChangeText={setLegenda}
-          editable={!loading}
-        />
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <TouchableOpacity style={styles.imagePicker} onPress={pickImage} disabled={loading}>
+            {image ? (
+              <Image source={{ uri: image }} style={styles.previewImg} />
+            ) : (
+              <View style={styles.imagePickerEmpty}>
+                <MaterialCommunityIcons name="camera-plus-outline" size={38} color="#ba7ef4" />
+                <Text style={styles.imagePickerText}>Adicionar Foto</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Marcas ou links das peças..."
-          placeholderTextColor="#978d9d"
-          value={marcas}
-          onChangeText={setMarcas}
-          editable={!loading}
-        />
-      </ScrollView>
-    </SafeAreaView>
+          <View style={styles.sectionDivider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>DETALHES DO LOOK</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TextInput
+            style={[styles.input, styles.inputMultiline]}
+            placeholder="Escreva uma legenda para o seu look..."
+            placeholderTextColor="#978d9d"
+            multiline
+            value={legenda}
+            onChangeText={setLegenda}
+            editable={!loading}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Marcas ou links das peças..."
+            placeholderTextColor="#978d9d"
+            value={marcas}
+            onChangeText={setMarcas}
+            editable={!loading}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#131313' },
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
   iconBtn: { padding: 4 },
   headerTitle: { color: '#e5e2e1', fontSize: 18, fontWeight: 'bold' },

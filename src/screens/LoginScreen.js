@@ -162,123 +162,128 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <LinearGradient colors={['#131313', '#2c0050', '#131313']} style={StyleSheet.absoluteFillObject} opacity={0.6} />
+      <View style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        <LinearGradient colors={['#131313', '#2c0050', '#131313']} style={StyleSheet.absoluteFillObject} opacity={0.6} />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
-        <View style={styles.inner}>
-          
-          <Animated.View
-            style={[
-              styles.header,
-              { transform: [{ translateY: logoTranslateY }, { scale: logoScale }], opacity: logoOpacity }
-            ]}
-            onLayout={handleHeaderLayout}
-          >
-            <Image
-              source={require('../../logo-def-dresscode.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </Animated.View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
+          <View style={styles.inner}>
+            
+            <Animated.View
+              style={[
+                styles.header,
+                { transform: [{ translateY: logoTranslateY }, { scale: logoScale }], opacity: logoOpacity }
+              ]}
+              onLayout={handleHeaderLayout}
+            >
+              <Image
+                source={require('../../logo-def-dresscode.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </Animated.View>
 
-          <Animated.View style={[styles.card, { opacity: cardOpacity }]}>
-            <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}>
-            {!isRegisterMode ? (
-              <View style={styles.formContainer}>
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Email"
-                    placeholderTextColor="#978d9d"
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                </View>
+            <Animated.View style={[styles.card, { opacity: cardOpacity }]}>
+              <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}>
+              {!isRegisterMode ? (
+                <View style={styles.formContainer}>
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Email"
+                      placeholderTextColor="#978d9d"
+                      value={email}
+                      onChangeText={setEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  </View>
 
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Senha"
-                    placeholderTextColor="#978d9d"
-                    secureTextEntry={!showPass}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
-                    <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color="#978d9d" />
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Senha"
+                      placeholderTextColor="#978d9d"
+                      secureTextEntry={!showPass}
+                      value={password}
+                      onChangeText={setPassword}
+                    />
+                    <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
+                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color="#978d9d" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity onPress={handleForgotPassword}>
+                    <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
                   </TouchableOpacity>
                 </View>
+              ) : (
+                <View style={styles.formContainer}>
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="account-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                  </View>
 
-                <TouchableOpacity onPress={handleForgotPassword}>
-                  <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
-                </TouchableOpacity>
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="at" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
+                  </View>
 
-                <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
-                  {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View style={styles.formContainer}>
-                <LinearGradient colors={['rgba(221,183,255,0.1)', 'transparent']} style={styles.glowOverlay} />
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                  </View>
 
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="account-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                  <View style={styles.inputWrapper}>
+                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                    <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
+                  </View>
+
+                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
+                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
+                  </TouchableOpacity>
                 </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="at" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                </View>
-
-                <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                  <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
-                </View>
-
-                <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
-                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
-                </TouchableOpacity>
-              </View>
-            )}
+              )}
+              </Animated.View>
             </Animated.View>
+
+            <Animated.View style={[styles.footer, { opacity: cardOpacity }]}>
+              <TouchableOpacity onPress={toggleMode}>
+                <Text style={styles.toggleText}>
+                  {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
+                  <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+
+          </View>
+        </KeyboardAvoidingView>
+
+        {showLoader && (
+          <Animated.View style={[styles.loaderOverlay, { opacity: loaderOpacity }]}>
+            <ActivityIndicator size="large" color="#ddb7ff" />
           </Animated.View>
-
-          <Animated.View style={[styles.footer, { opacity: cardOpacity }]}>
-            <TouchableOpacity onPress={toggleMode}>
-              <Text style={styles.toggleText}>
-                {isRegisterMode ? "Já tem conta? " : "Novo por aqui? "}
-                <Text style={styles.toggleBold}>{isRegisterMode ? "Login" : "Registre-se"}</Text>
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-
-        </View>
-      </KeyboardAvoidingView>
-
-      {showLoader && (
-        <Animated.View style={[styles.loaderOverlay, { opacity: loaderOpacity }]}>
-          <ActivityIndicator size="large" color="#ddb7ff" />
-        </Animated.View>
-      )}
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
     flex: 1,
+    width: '100%',
+    maxWidth: 480,
     backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
   },
   loaderOverlay: {
     position: 'absolute',

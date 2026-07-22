@@ -286,114 +286,124 @@ export default function ProfileScreen({ route, navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <View style={styles.container}>
+      <SafeAreaView style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" />
 
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
-          <MaterialCommunityIcons name="chevron-left" size={30} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.topLogo}>DressCode</Text>
-        <View style={{ width: 30 }} />
-      </View>
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <MaterialCommunityIcons name="chevron-left" size={30} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.topLogo}>DressCode</Text>
+          <View style={{ width: 30 }} />
+        </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#ba7ef4" style={{ flex: 1 }} />
-      ) : (
-        <FlatList
-          data={userPosts}
-          numColumns={2}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderHeader}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <MaterialCommunityIcons name="hanger" size={40} color="#443a52" />
-              <Text style={styles.emptyStateText}>
-                {isMyProfile ? 'Você ainda não publicou nenhum look.' : 'Nenhum look publicado ainda.'}
-              </Text>
-            </View>
-          }
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handlePullToRefresh} tintColor="#ba7ef4" />
-          }
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnStyle}
-          renderItem={({ item, index }) => (
+        {loading ? (
+          <ActivityIndicator size="large" color="#ba7ef4" style={{ flex: 1 }} />
+        ) : (
+          <FlatList
+            data={userPosts}
+            numColumns={2}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={renderHeader}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons name="hanger" size={40} color="#443a52" />
+                <Text style={styles.emptyStateText}>
+                  {isMyProfile ? 'Você ainda não publicou nenhum look.' : 'Nenhum look publicado ainda.'}
+                </Text>
+              </View>
+            }
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handlePullToRefresh} tintColor="#ba7ef4" />
+            }
+            contentContainerStyle={styles.listContent}
+            columnWrapperStyle={styles.columnStyle}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
+                onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
+              >
+                <Image source={{ uri: item.imageuri }} style={styles.gridImg} />
+                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.postOverlay}>
+                  <Text style={styles.postTag}>#Style</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
+          />
+        )}
+
+        {/* BOTTOM NAV */}
+        <View style={styles.bottomNavContainer}>
+          <View style={styles.bottomNav}>
+            <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}>
+              <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Search')} >
+              <MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" />
+            </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
-              onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
+              style={styles.centerAddBtn}
+              onPress={() => navigation.navigate('CreatePost', { user: currentUser })}
             >
-              <Image source={{ uri: item.imageuri }} style={styles.gridImg} />
-              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.postOverlay}>
-                <Text style={styles.postTag}>#Style</Text>
+              <LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.addBtnGradient}>
+                <MaterialCommunityIcons name="plus" size={32} color="#fff" />
               </LinearGradient>
             </TouchableOpacity>
-          )}
-        />
-      )}
-
-      {/* BOTTOM NAV */}
-      <View style={styles.bottomNavContainer}>
-        <View style={styles.bottomNav}>
-          <TouchableOpacity onPress={() => navigation.navigate('Vitrine')}>
-            <MaterialCommunityIcons name="view-grid-outline" size={26} color="#ffffff60" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')} >
-            <MaterialCommunityIcons name="magnify" size={26} color="#ffffff60" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.centerAddBtn}
-            onPress={() => navigation.navigate('CreatePost', { user: currentUser })}
-          >
-            <LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.addBtnGradient}>
-              <MaterialCommunityIcons name="plus" size={32} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Closet')}>
-            <MaterialCommunityIcons name="hanger" size={26} color="#ffffff60" />
-          </TouchableOpacity>
-          <TouchableOpacity>
-            <MaterialCommunityIcons name="account" size={26} color="#ddb7ff" />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Closet')}>
+              <MaterialCommunityIcons name="hanger" size={26} color="#ffffff60" />
+            </TouchableOpacity>
+            <TouchableOpacity>
+              <MaterialCommunityIcons name="account" size={26} color="#ddb7ff" />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {/* MODAL EDIÇÃO DE BIO */}
-      <Modal visible={isEditing} animationType="fade" transparent>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalWrapper}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalHeader}>Editar Bio</Text>
-              <View style={styles.inputBox}>
-                <TextInput
-                  style={styles.textInput}
-                  multiline
-                  maxLength={150}
-                  placeholder="Sua bio..."
-                  placeholderTextColor="#978d9d"
-                  value={editBioText}
-                  onChangeText={setEditBioText}
-                />
+        {/* MODAL EDIÇÃO DE BIO */}
+        <Modal visible={isEditing} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalWrapper}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalHeader}>Editar Bio</Text>
+                <View style={styles.inputBox}>
+                  <TextInput
+                    style={styles.textInput}
+                    multiline
+                    maxLength={150}
+                    placeholder="Sua bio..."
+                    placeholderTextColor="#978d9d"
+                    value={editBioText}
+                    onChangeText={setEditBioText}
+                  />
+                </View>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity onPress={() => setIsEditing(false)}>
+                    <Text style={styles.btnCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.btnSave} onPress={handleSaveBio}>
+                    <Text style={styles.btnSaveText}>Salvar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity onPress={() => setIsEditing(false)}>
-                  <Text style={styles.btnCancelText}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.btnSave} onPress={handleSaveBio}>
-                  <Text style={styles.btnSaveText}>Salvar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-    </SafeAreaView>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#131313' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, height: 60 },
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, height: 60, width: '100%' },
   topLogo: { color: '#ddb7ff', fontSize: 20, fontStyle: 'italic' },
   headerArea: { alignItems: 'center', paddingVertical: 20 },
   avatarWrapper: { marginBottom: 15 },

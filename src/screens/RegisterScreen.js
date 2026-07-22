@@ -90,70 +90,80 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      <LinearGradient
-        colors={['#131313', '#2c0050', '#131313']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        opacity={0.4}
-      />
+      <View style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" />
+        
+        <LinearGradient
+          colors={['#131313', '#2c0050', '#131313']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+          opacity={0.4}
+        />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            
-            <View style={styles.header}>
-              <Image source={require('../../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
-              <Text style={styles.subtitle}>Crie sua conta</Text>
-            </View>
-
-            <View style={styles.glassCard}>
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
-                <TextInput style={styles.input} placeholder="Nome" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+              
+              <View style={styles.header}>
+                <Image source={require('../../logo-def-dresscode.png')} style={styles.logo} resizeMode="contain" />
+                <Text style={styles.subtitle}>Crie sua conta</Text>
               </View>
 
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
-                <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={handleUsernameChange} autoCapitalize="none" />
-              </View>
+              <View style={styles.glassCard}>
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="account-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Nome" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                </View>
 
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
-                <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-              </View>
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="at" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={handleUsernameChange} autoCapitalize="none" />
+                </View>
 
-              <View style={styles.inputWrapper}>
-                <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
-                <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry={!showPass} value={password} onChangeText={setPassword} />
-                <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                  <MaterialCommunityIcons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="#978d9d" />
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="email-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+                </View>
+
+                <View style={styles.inputWrapper}>
+                  <MaterialCommunityIcons name="lock-outline" size={22} color="#978d9d" />
+                  <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry={!showPass} value={password} onChangeText={setPassword} />
+                  <TouchableOpacity onPress={() => setShowPass(!showPass)}>
+                    <MaterialCommunityIcons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={22} color="#978d9d" />
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
+                  {loading ? <ActivityIndicator color="#ba7ef4" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
                 </TouchableOpacity>
               </View>
 
-              <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={handleRegister} disabled={loading}>
-                {loading ? <ActivityIndicator color="#ba7ef4" /> : <Text style={styles.buttonText}>CRIAR CONTA</Text>}
-              </TouchableOpacity>
-            </View>
+              <View style={styles.footerContainer}>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                  <Text style={styles.mutedText}>Já tem conta? <Text style={styles.linkText}>Login</Text></Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={styles.footerContainer}>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
-                <Text style={styles.mutedText}>Já tem conta? <Text style={styles.linkText}>Login</Text></Text>
-              </TouchableOpacity>
-            </View>
-
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
 
 // ... Manter os mesmos Styles originais do seu RegisterScreen.js
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#131313' },
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
+  },
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 32, width: '100%' },

@@ -95,49 +95,61 @@ export default function AdminScreen({ navigation }) {
 
   if (!isAdmin) {
     return (
-      <View style={[styles.container, styles.deniedContainer]}>
-        <MaterialCommunityIcons name="shield-lock-outline" size={48} color="#ff5c5c" />
-        <Text style={styles.deniedText}>Acesso restrito a administradores.</Text>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.deniedBtn}>
-          <Text style={styles.deniedBtnText}>Voltar</Text>
-        </TouchableOpacity>
+      <View style={styles.container}>
+        <View style={[styles.responsiveContainer, styles.deniedContainer]}>
+          <MaterialCommunityIcons name="shield-lock-outline" size={48} color="#ff5c5c" />
+          <Text style={styles.deniedText}>Acesso restrito a administradores.</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.deniedBtn}>
+            <Text style={styles.deniedBtnText}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Painel do Administrador</Text>
-        <TouchableOpacity onPress={fetchUsers}>
-          <MaterialCommunityIcons name="refresh" size={26} color="#ed85ff" />
-        </TouchableOpacity>
-      </View>
+      <View style={styles.responsiveContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Painel do Administrador</Text>
+          <TouchableOpacity onPress={fetchUsers}>
+            <MaterialCommunityIcons name="refresh" size={26} color="#ed85ff" />
+          </TouchableOpacity>
+        </View>
 
-      <View style={styles.statsBar}>
-        <Text style={styles.statsText}>Total de Usuários Cadastrados: {users.length}</Text>
-      </View>
+        <View style={styles.statsBar}>
+          <Text style={styles.statsText}>Total de Usuários Cadastrados: {users.length}</Text>
+        </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#ed85ff" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-          data={users}
-          keyExtractor={(item) => item.id} // Ajustado para ler as chaves string nativas do Firebase
-          renderItem={renderUserItem}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>Nenhum usuário encontrado no Google Cloud.</Text>}
-        />
-      )}
+        {loading ? (
+          <ActivityIndicator size="large" color="#ed85ff" style={{ marginTop: 50 }} />
+        ) : (
+          <FlatList
+            data={users}
+            keyExtractor={(item) => item.id} // Ajustado para ler as chaves string nativas do Firebase
+            renderItem={renderUserItem}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={<Text style={styles.empty}>Nenhum usuário encontrado no Google Cloud.</Text>}
+          />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1a011b' },
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#1a011b',
+    position: 'relative',
+    overflow: 'hidden',
+  },
   deniedContainer: { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 30 },
   deniedText: { color: '#ffffffcc', fontSize: 15, textAlign: 'center', marginTop: 15, marginBottom: 25 },
   deniedBtn: { backgroundColor: '#350238', paddingHorizontal: 25, paddingVertical: 12, borderRadius: 12 },

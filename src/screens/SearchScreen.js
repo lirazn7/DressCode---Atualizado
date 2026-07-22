@@ -99,61 +99,70 @@ export default function SearchScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#e5e2e1" />
-        </TouchableOpacity>
+    <View style={styles.container}>
+      <SafeAreaView style={styles.responsiveContainer}>
+        <StatusBar barStyle="light-content" />
         
-        <View style={styles.searchBox}>
-          <MaterialCommunityIcons name="magnify" size={22} color="#978d9d" style={styles.searchIcon} />
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Buscar usuários..."
-            placeholderTextColor="#978d9d"
-            value={searchQuery}
-            onChangeText={handleSearch}
-            autoFocus={true}
-            autoCapitalize="none"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => handleSearch('')}>
-              <MaterialCommunityIcons name="close-circle" size={20} color="#978d9d" />
-            </TouchableOpacity>
-          )}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <MaterialCommunityIcons name="arrow-left" size={28} color="#e5e2e1" />
+          </TouchableOpacity>
+          
+          <View style={styles.searchBox}>
+            <MaterialCommunityIcons name="magnify" size={22} color="#978d9d" style={styles.searchIcon} />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder="Buscar usuários..."
+              placeholderTextColor="#978d9d"
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoFocus={true}
+              autoCapitalize="none"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <MaterialCommunityIcons name="close-circle" size={20} color="#978d9d" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#ba7ef4" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id} // ID alfanumérico do Firestore
-          renderItem={renderUserItem}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            searchQuery.length > 1 ? (
-              <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
-            ) : (
-              <View style={styles.placeholderState}>
-                <MaterialCommunityIcons name="account-search-outline" size={60} color="#ffffff10" />
-                <Text style={styles.placeholderText}>Encontre novos estilos</Text>
-              </View>
-            )
-          }
-        />
-      )}
-    </SafeAreaView>
+        {loading ? (
+          <ActivityIndicator size="large" color="#ba7ef4" style={{ marginTop: 40 }} />
+        ) : (
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.id} // ID alfanumérico do Firestore
+            renderItem={renderUserItem}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              searchQuery.length > 1 ? (
+                <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
+              ) : (
+                <View style={styles.placeholderState}>
+                  <MaterialCommunityIcons name="account-search-outline" size={60} color="#ffffff10" />
+                  <Text style={styles.placeholderText}>Encontre novos estilos</Text>
+                </View>
+              )
+            }
+          />
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#131313' },
-  header: { 
+  container: { flex: 1, backgroundColor: '#0a050f', alignItems: 'center', justifyContent: 'center' },
+  responsiveContainer: {
     flex: 1,
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#131313',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  header: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     paddingHorizontal: 15, 

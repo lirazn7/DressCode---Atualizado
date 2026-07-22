@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert, ActivityIndicator, StatusBar, SafeAreaView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -87,34 +87,52 @@ export default function CreatePostScreen({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#801C91', '#350238']} style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialCommunityIcons name="close" size={28} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <MaterialCommunityIcons name="close" size={26} color="#e5e2e1" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Novo Look</Text>
-        <TouchableOpacity onPress={handlePublish} disabled={loading}>
+        <TouchableOpacity onPress={handlePublish} disabled={loading || !image} style={styles.publishBtnWrapper}>
           {loading ? (
-            <ActivityIndicator color="#ed85ff" size="small" />
+            <View style={[styles.publishBtn, styles.publishBtnDisabled]}>
+              <ActivityIndicator color="#ddb7ff" size="small" />
+            </View>
           ) : (
-            <Text style={styles.publishText}>Publicar</Text>
+            <LinearGradient
+              colors={image ? ['#ba7ef4', '#4b0082'] : ['#2a2233', '#2a2233']}
+              style={styles.publishBtn}
+            >
+              <Text style={[styles.publishText, !image && styles.publishTextDisabled]}>Publicar</Text>
+            </LinearGradient>
           )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <TouchableOpacity style={styles.imagePicker} onPress={pickImage} disabled={loading}>
           {image ? (
-            <Image source={{ uri: image }} style={{ width: '100%', height: '100%', borderRadius: 15 }} />
+            <Image source={{ uri: image }} style={styles.previewImg} />
           ) : (
-            <Text style={{ color: '#fff' }}>Adicionar Foto</Text>
+            <View style={styles.imagePickerEmpty}>
+              <MaterialCommunityIcons name="camera-plus-outline" size={38} color="#ba7ef4" />
+              <Text style={styles.imagePickerText}>Adicionar Foto</Text>
+            </View>
           )}
         </TouchableOpacity>
 
+        <View style={styles.sectionDivider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>DETALHES DO LOOK</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <TextInput
-          style={styles.input}
-          placeholder="Legenda..."
-          placeholderTextColor="#aaa"
+          style={[styles.input, styles.inputMultiline]}
+          placeholder="Escreva uma legenda para o seu look..."
+          placeholderTextColor="#978d9d"
           multiline
           value={legenda}
           onChangeText={setLegenda}
@@ -123,22 +141,35 @@ export default function CreatePostScreen({ navigation }) {
 
         <TextInput
           style={styles.input}
-          placeholder="Links/Marcas..."
-          placeholderTextColor="#aaa"
+          placeholder="Marcas ou links das peças..."
+          placeholderTextColor="#978d9d"
           value={marcas}
           onChangeText={setMarcas}
           editable={!loading}
         />
       </ScrollView>
-    </LinearGradient>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  publishText: { color: '#ed85ff', fontWeight: 'bold', fontSize: 16 },
-  imagePicker: { width: '100%', height: 350, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  input: { backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 10, padding: 15, color: '#fff', marginBottom: 15, fontSize: 16 }
+  container: { flex: 1, backgroundColor: '#131313' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15 },
+  iconBtn: { padding: 4 },
+  headerTitle: { color: '#e5e2e1', fontSize: 18, fontWeight: 'bold' },
+  publishBtnWrapper: { borderRadius: 20, overflow: 'hidden' },
+  publishBtn: { paddingHorizontal: 20, paddingVertical: 9, borderRadius: 20, alignItems: 'center', justifyContent: 'center', minWidth: 90 },
+  publishBtnDisabled: { backgroundColor: '#160d22' },
+  publishText: { color: '#160d22', fontWeight: 'bold', fontSize: 14 },
+  publishTextDisabled: { color: '#6b6270' },
+  scrollContent: { padding: 20, paddingBottom: 60 },
+  imagePicker: { width: '100%', height: 380, backgroundColor: '#160d22', borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: 'rgba(186,126,244,0.2)', overflow: 'hidden' },
+  imagePickerEmpty: { alignItems: 'center' },
+  imagePickerText: { color: '#978d9d', fontSize: 14, marginTop: 10, fontWeight: '600' },
+  previewImg: { width: '100%', height: '100%' },
+  sectionDivider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
+  dividerText: { color: '#978d9d', fontSize: 10, letterSpacing: 3, marginHorizontal: 15 },
+  input: { backgroundColor: '#160d22', borderRadius: 12, padding: 15, color: '#e5e2e1', marginBottom: 15, fontSize: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  inputMultiline: { minHeight: 80, textAlignVertical: 'top' }
 });

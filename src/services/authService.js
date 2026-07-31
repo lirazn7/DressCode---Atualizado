@@ -12,8 +12,14 @@ import { auth, db } from '../database/firebase';
 
 WebBrowser.maybeCompleteAuthSession();
 
+import { useEffect } from 'react';
+
 const extra = Constants.expoConfig?.extra || {};
 const GOOGLE_WEB_CLIENT_ID = extra.googleWebClientId;
+const GOOGLE_ANDROID_CLIENT_ID = extra.googleAndroidClientId;
+
+console.log('Carga do GOOGLE_WEB_CLIENT_ID no authService:', GOOGLE_WEB_CLIENT_ID);
+console.log('Carga do GOOGLE_ANDROID_CLIENT_ID no authService:', GOOGLE_ANDROID_CLIENT_ID);
 
 export async function signInWithGoogleNative(idToken) {
   const credential = GoogleAuthProvider.credential(idToken);
@@ -55,12 +61,27 @@ async function ensureUserProfile(firebaseUser) {
   return userData;
 }
 
+import * as AuthSession from 'expo-auth-session';
+
 export function useGoogleAuthRequest() {
-  return Google.useIdTokenAuthRequest({
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_WEB_CLIENT_ID,
     webClientId: GOOGLE_WEB_CLIENT_ID,
     iosClientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_WEB_CLIENT_ID,
+    androidClientId: GOOGLE_ANDROID_CLIENT_ID || GOOGLE_WEB_CLIENT_ID,
+    redirectUri: AuthSession.makeRedirectUri({
+      scheme: 'dresscode',
+      useProxy: true,
+    }),
   });
+
+  useEffect(() => {
+    if (request) {
+      console.log('URL de requisição gerada pelo Google Auth:', request.url);
+    }
+  }, [request]);
+
+  return [request, response, promptAsync];
 }
 
 export async function handleGoogleSignIn(promptAsync) {

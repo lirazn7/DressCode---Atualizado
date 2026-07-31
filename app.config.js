@@ -14,7 +14,11 @@ module.exports = {
       firebaseAppId: process.env.FIREBASE_APP_ID,
       firebaseMeasurementId: process.env.FIREBASE_MEASUREMENT_ID,
       googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+      googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID,
       openRouterApiKey: process.env.OPENROUTER_API_KEY,
+      eas: {
+        projectId: "93a997f2-f3eb-4576-bff6-692d41d21bf2"
+      }
     },
     orientation: 'portrait',
     icon: './assets/icon.png',

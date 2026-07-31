@@ -4,6 +4,7 @@ module.exports = {
   expo: {
     name: 'dresscode',
     slug: 'snack-6bb6208d-7b54-4ccc-924b-ce3e55cf5ef7',
+    owner: 'igorzn7', // <--- ADICIONE ESTA LINHA AQUI
     version: '1.0.0',
     extra: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,

@@ -17,11 +17,13 @@ import {
   doc, getDoc, updateDoc, collection, getDocs, query, where, orderBy
 } from 'firebase/firestore';
 import { toggleFollow } from '../services/postService';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_WIDTH = (width - 40) / 2;
 
 export default function ProfileScreen({ route, navigation }) {
+  const { refreshUser } = useAuth();
   // Ajuste preventivo de escopo para resgatar IDs tanto de formatos antigos quanto novos (.uid)
   const { profileUser, currentUser } = route.params;
   const currentUserId = currentUser?.uid || currentUser?.id;
@@ -42,6 +44,12 @@ export default function ProfileScreen({ route, navigation }) {
   const [isFollowingProfile, setIsFollowingProfile] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Estados para alteração de senha
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Validação estrita se o perfil visualizado pertence ao usuário logado
   const isMyProfile = profileUserId === currentUserId;
@@ -158,6 +166,48 @@ export default function ProfileScreen({ route, navigation }) {
   };
 
   /**
+   * 🔒 ALTERAÇÃO DE SENHA DO USUÁRIO
+   */
+  const handleUpdatePassword = async () => {
+    if (!newPassword.trim()) {
+      return Alert.alert('Atenção', 'Digite a nova senha.');
+    }
+    if (newPassword !== confirmPassword) {
+      return Alert.alert('Erro', 'As senhas não coincidem.');
+    }
+    if (newPassword.length < 6) {
+      return Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { updatePassword } = require('firebase/auth');
+      const { auth } = require('../database/firebase');
+      if (auth.currentUser) {
+        await updatePassword(auth.currentUser, newPassword);
+        Alert.alert('Sucesso', 'Senha alterada com sucesso!');
+        setIsChangingPassword(false);
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        Alert.alert('Erro', 'Usuário não autenticado.');
+      }
+    } catch (error) {
+      console.log('Erro ao alterar senha:', error);
+      if (error.code === 'auth/requires-recent-login') {
+        Alert.alert(
+          'Reautenticação necessária',
+          'Por segurança, esta operação requer que você faça login novamente recente. Por favor, saia e entre novamente.'
+        );
+      } else {
+        Alert.alert('Erro', 'Não foi possível alterar a senha. Tente novamente.');
+      }
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  /**
    * 📸 UPLOAD DE FOTO DE PERFIL INTELIGENTE (BASE64)
    * Eliminamos o uso de buckets pagos convertendo a imagem em texto puro!
    */
@@ -191,7 +241,8 @@ export default function ProfileScreen({ route, navigation }) {
         const userDocRef = doc(db, 'users', currentUserId);
         await updateDoc(userDocRef, { avatar_url: finalAvatarString });
 
-        setAvatarUrl(finalAvatarString); // Atualiza instantaneamente a interface
+        setAvatarUrl(finalAvatarString);
+        await refreshUser();
         Alert.alert("Sucesso", "Sua foto de perfil foi atualizada!");
 
       } catch (error) {
@@ -203,7 +254,7 @@ export default function ProfileScreen({ route, navigation }) {
     }
   };
 
-  const renderHeader = () => (
+  const renderProfileHeader = () => (
     <View style={styles.headerArea}>
       <View style={styles.avatarWrapper}>
         <LinearGradient colors={['#ba7ef4', '#4b0082']} style={styles.avatarGradient}>
@@ -250,10 +301,16 @@ export default function ProfileScreen({ route, navigation }) {
       </View>
 
       {isMyProfile ? (
-        <TouchableOpacity style={styles.editActionBtn} onPress={() => { setEditBioText(bio); setIsEditing(true); }}>
-          <MaterialCommunityIcons name="pencil-outline" size={16} color="#ddb7ff" />
-          <Text style={styles.editActionText}>Editar Perfil</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={styles.editActionBtn} onPress={() => { setEditBioText(bio); setIsEditing(true); }}>
+            <MaterialCommunityIcons name="pencil-outline" size={16} color="#ddb7ff" />
+            <Text style={styles.editActionText}>Editar Perfil</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.editActionBtn} onPress={() => setIsChangingPassword(true)}>
+            <MaterialCommunityIcons name="lock-outline" size={16} color="#ddb7ff" />
+            <Text style={styles.editActionText}>Alterar Senha</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <TouchableOpacity
           style={isFollowingProfile ? styles.followingActionBtn : styles.followActionBtn}
@@ -301,36 +358,42 @@ export default function ProfileScreen({ route, navigation }) {
         {loading ? (
           <ActivityIndicator size="large" color="#ba7ef4" style={{ flex: 1 }} />
         ) : (
-          <FlatList
-            data={userPosts}
-            numColumns={2}
-            keyExtractor={(item) => item.id}
-            ListHeaderComponent={renderHeader}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons name="hanger" size={40} color="#443a52" />
-                <Text style={styles.emptyStateText}>
-                  {isMyProfile ? 'Você ainda não publicou nenhum look.' : 'Nenhum look publicado ainda.'}
-                </Text>
-              </View>
-            }
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={handlePullToRefresh} tintColor="#ba7ef4" />
-            }
-            contentContainerStyle={styles.listContent}
-            columnWrapperStyle={styles.columnStyle}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
-                onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
-              >
-                <Image source={{ uri: item.imageuri }} style={styles.gridImg} resizeMode="cover" />
-                <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.postOverlay}>
-                  <Text style={styles.postTag}>#Style</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          />
+          <View style={styles.profileBody}>
+            <View style={styles.fixedProfileHeader}>
+              {renderProfileHeader()}
+            </View>
+
+            <FlatList
+              style={styles.gridList}
+              data={userPosts}
+              numColumns={2}
+              keyExtractor={(item) => item.id}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <MaterialCommunityIcons name="hanger" size={40} color="#443a52" />
+                  <Text style={styles.emptyStateText}>
+                    {isMyProfile ? 'Você ainda não publicou nenhum look.' : 'Nenhum look publicado ainda.'}
+                  </Text>
+                </View>
+              }
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={handlePullToRefresh} tintColor="#ba7ef4" />
+              }
+              contentContainerStyle={styles.listContent}
+              columnWrapperStyle={styles.columnStyle}
+              renderItem={({ item, index }) => (
+                <TouchableOpacity
+                  style={[styles.postCard, { marginTop: index % 2 !== 0 ? 30 : 0 }]}
+                  onPress={() => navigation.navigate('Vitrine', { initialPost: item })}
+                >
+                  <Image source={{ uri: item.imageuri }} style={styles.gridImg} resizeMode="cover" />
+                  <LinearGradient colors={['transparent', 'rgba(0,0,0,0.7)']} style={styles.postOverlay}>
+                    <Text style={styles.postTag}>#Style</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
         )}
 
         {/* BOTTOM NAV */}
@@ -388,6 +451,52 @@ export default function ProfileScreen({ route, navigation }) {
             </KeyboardAvoidingView>
           </View>
         </Modal>
+
+        {/* MODAL ALTERAR SENHA */}
+        <Modal visible={isChangingPassword} animationType="fade" transparent>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalWrapper}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalHeader}>Alterar Senha</Text>
+
+                <View style={[styles.inputBox, { marginBottom: 15 }]}>
+                  <TextInput
+                    style={styles.textInput}
+                    secureTextEntry
+                    placeholder="Nova senha (min. 6 caracteres)"
+                    placeholderTextColor="#978d9d"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                  />
+                </View>
+
+                <View style={styles.inputBox}>
+                  <TextInput
+                    style={styles.textInput}
+                    secureTextEntry
+                    placeholder="Confirme a nova senha"
+                    placeholderTextColor="#978d9d"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                  />
+                </View>
+
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity onPress={() => { setIsChangingPassword(false); setNewPassword(''); setConfirmPassword(''); }} disabled={passwordLoading}>
+                    <Text style={styles.btnCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.btnSave} onPress={handleUpdatePassword} disabled={passwordLoading}>
+                    {passwordLoading ? (
+                      <ActivityIndicator color="#160d22" size="small" />
+                    ) : (
+                      <Text style={styles.btnSaveText}>Salvar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
+          </View>
+        </Modal>
       </SafeAreaView>
     </View>
   );
@@ -404,6 +513,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 15, height: 60, width: '100%' },
+  profileBody: { flex: 1, width: '100%' },
+  fixedProfileHeader: {
+    backgroundColor: '#131313',
+    zIndex: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  gridList: { flex: 1 },
   topLogo: { color: '#ddb7ff', fontSize: 20, fontStyle: 'italic' },
   headerArea: { alignItems: 'center', paddingVertical: 20 },
   avatarWrapper: { marginBottom: 15 },
@@ -426,7 +543,7 @@ const styles = StyleSheet.create({
   followingActionText: { color: '#ddb7ff', fontSize: 12, fontWeight: 'bold', marginLeft: 8 },
   emptyState: { alignItems: 'center', paddingVertical: 50, paddingHorizontal: 40 },
   emptyStateText: { color: '#978d9d', fontSize: 13, marginTop: 10, textAlign: 'center' },
-  sectionDivider: { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 20, marginVertical: 30 },
+  sectionDivider: { flexDirection: 'row', alignItems: 'center', width: '100%', paddingHorizontal: 20, marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
   dividerText: { color: '#978d9d', fontSize: 10, letterSpacing: 3, marginHorizontal: 15 },
   listContent: { paddingBottom: 120 },

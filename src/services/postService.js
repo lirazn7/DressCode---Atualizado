@@ -1,6 +1,6 @@
 import { db } from '../database/firebase';
-import { 
-  collection, getDocs, doc, getDoc, addDoc, updateDoc, 
+import {
+  collection, getDocs, doc, getDoc, addDoc, updateDoc,
   query, where, orderBy, deleteDoc, arrayUnion, arrayRemove, increment,
   limit, startAfter
 } from 'firebase/firestore';
@@ -23,6 +23,18 @@ export const getPosts = async (currentUserId, lastDoc = null) => {
     const followSnapshot = await getDocs(followQuery);
     const followingIds = followSnapshot.docs.map(doc => doc.data().targetId);
 
+    const userIds = [...new Set(querySnapshot.docs.map(d => d.data().userid).filter(Boolean))];
+    const avatarMap = {};
+
+    await Promise.all(userIds.map(async (uid) => {
+      try {
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (userSnap.exists()) {
+          avatarMap[uid] = userSnap.data().avatar_url || null;
+        }
+      } catch (_) { /* ignore */ }
+    }));
+
     querySnapshot.forEach((documento) => {
       const dados = documento.data();
       const likedBy = dados.likedBy || [];
@@ -32,6 +44,7 @@ export const getPosts = async (currentUserId, lastDoc = null) => {
         userid: dados.userid,
         username: dados.username || 'user_dresscode',
         nome: dados.nome || 'Usuário DressCode',
+        avatar_url: avatarMap[dados.userid] || null,
         imageuri: dados.imageuri,
         legenda: dados.legenda || '',
         marcas: dados.marcas || '',

@@ -2,19 +2,18 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import Constants from 'expo-constants'; // Leitor oficial do Expo
+import Constants from 'expo-constants';
 
-// Puxa os dados que você colocou na aba "extra" do app.json
-const { firebaseApiKey, firebaseAuthDomain, firebaseProjectId } = Constants.expoConfig.extra;
+const extra = Constants.expoConfig?.extra || {};
 
 const firebaseConfig = {
-  apiKey: firebaseApiKey,
-  authDomain: firebaseAuthDomain,
-  projectId: firebaseProjectId,
-  storageBucket: "dressc0de.firebasestorage.app",
-  messagingSenderId: "818084037811",
-  appId: "1:818084037811:web:eecf7bf925b83f1f35dcc6",
-  measurementId: "G-NK06DF0KJW"
+  apiKey: extra.firebaseApiKey,
+  authDomain: extra.firebaseAuthDomain,
+  projectId: extra.firebaseProjectId,
+  storageBucket: extra.firebaseStorageBucket || 'dressc0de.firebasestorage.app',
+  messagingSenderId: extra.firebaseMessagingSenderId || '818084037811',
+  appId: extra.firebaseAppId || '1:818084037811:web:eecf7bf925b83f1f35dcc6',
+  measurementId: extra.firebaseMeasurementId || 'G-NK06DF0KJW',
 };
 
 const app = initializeApp(firebaseConfig);

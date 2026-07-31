@@ -8,12 +8,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 import { auth, db } from '../database/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDoc, getDocs, collection, query, where } from 'firebase/firestore';
+import { handleGoogleSignIn, useGoogleAuthRequest } from '../services/authService';
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
   const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+  const [, , promptAsync] = useGoogleAuthRequest();
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,17 +108,18 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email.trim()) {
-      return Alert.alert('Atenção', 'Digite seu e-mail no campo acima para recuperar a senha.');
-    }
+  const handleGoogleLogin = async () => {
+    setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
-      Alert.alert('Verifique seu e-mail', 'Enviamos um link de recuperação de senha para o seu e-mail.');
-    } catch (e) {
-      console.log(e);
-      Alert.alert('Erro', 'Não foi possível enviar o e-mail de recuperação. Verifique o e-mail informado.');
+      const userData = await handleGoogleSignIn(promptAsync);
+      if (userData) runWelcomeTransition(userData);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    navigation.navigate('ForgotPassword');
   };
 
   const handleRegister = async () => {
@@ -168,7 +171,7 @@ export default function LoginScreen({ navigation }) {
 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
           <View style={styles.inner}>
-            
+
             <Animated.View
               style={[
                 styles.header,
@@ -185,71 +188,82 @@ export default function LoginScreen({ navigation }) {
 
             <Animated.View style={[styles.card, { opacity: cardOpacity }]}>
               <Animated.View style={{ transform: [{ translateX: slideAnim }], opacity: fadeAnim }}>
-              {!isRegisterMode ? (
-                <View style={styles.formContainer}>
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Email"
-                      placeholderTextColor="#978d9d"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                    />
-                  </View>
+                {!isRegisterMode ? (
+                  <View style={styles.formContainer}>
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        placeholderTextColor="#978d9d"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                      />
+                    </View>
 
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput
-                      style={styles.input}
-                      placeholder="Senha"
-                      placeholderTextColor="#978d9d"
-                      secureTextEntry={!showPass}
-                      value={password}
-                      onChangeText={setPassword}
-                    />
-                    <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
-                      <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color="#978d9d" />
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Senha"
+                        placeholderTextColor="#978d9d"
+                        secureTextEntry={!showPass}
+                        value={password}
+                        onChangeText={setPassword}
+                      />
+                      <TouchableOpacity onPress={() => setShowPass(!showPass)} style={{ padding: 6 }}>
+                        <MaterialCommunityIcons name={showPass ? "eye-off-outline" : "eye-outline"} size={20} color="#978d9d" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity onPress={handleForgotPassword}>
+                      <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
+                      {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
+                    </TouchableOpacity>
+
+                    <View style={styles.dividerRow}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerLabel}>ou</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+
+                    <TouchableOpacity style={styles.googleBtn} onPress={handleGoogleLogin} disabled={loading}>
+                      <MaterialCommunityIcons name="google" size={20} color="#e5e2e1" />
+                      <Text style={styles.googleBtnText}>Continuar com Google</Text>
                     </TouchableOpacity>
                   </View>
+                ) : (
+                  <View style={styles.formContainer}>
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="account-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                    </View>
 
-                  <TouchableOpacity onPress={handleForgotPassword}>
-                    <Text style={styles.forgotText}>Esqueceu sua senha?</Text>
-                  </TouchableOpacity>
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="at" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
+                    </View>
 
-                  <TouchableOpacity style={styles.mainBtn} onPress={handleLogin} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#4a0080" /> : <Text style={styles.btnText}>ENTRAR</Text>}
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.formContainer}>
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="account-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor="#978d9d" value={nome} onChangeText={setNome} />
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+                    </View>
+
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
+                      <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
+                    </View>
+
+                    <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
+                      {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
+                    </TouchableOpacity>
                   </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="at" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput style={styles.input} placeholder="Username" placeholderTextColor="#978d9d" value={username} onChangeText={setUsername} autoCapitalize="none" />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#978d9d" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-                  </View>
-
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="lock-outline" size={20} color="#978d9d" style={styles.iconStyle} />
-                    <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="#978d9d" secureTextEntry value={password} onChangeText={setPassword} />
-                  </View>
-
-                  <TouchableOpacity style={[styles.mainBtn, { backgroundColor: '#ba7ef4' }]} onPress={handleRegister} disabled={loading}>
-                    {loading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.btnText, { color: '#fff' }]}>CRIAR CONTA</Text>}
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
               </Animated.View>
             </Animated.View>
 
@@ -377,5 +391,36 @@ const styles = StyleSheet.create({
   toggleBold: {
     color: '#ddb7ff',
     fontWeight: 'bold',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  dividerLabel: {
+    color: '#978d9d',
+    fontSize: 12,
+    marginHorizontal: 12,
+  },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#131313',
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    gap: 10,
+  },
+  googleBtnText: {
+    color: '#e5e2e1',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

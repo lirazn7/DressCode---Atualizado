@@ -6,8 +6,8 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useIsFocused } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useIsFocused } from '@react-navigation/native';
 
 // Importação dos serviços integrados ao Firebase
 import { getPosts, toggleLike, toggleFollow, getComments, addComment } from '../services/postService';
@@ -16,7 +16,7 @@ const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
 export default function VitrineScreen({ navigation }) {
   const isFocused = useIsFocused();
-  const { user, signOut } = useAuth();
+  const { user, signOut, refreshUser } = useAuth();
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function VitrineScreen({ navigation }) {
       setHasMore(maisPosts);
     } catch (error) {
       console.log("Erro ao carregar posts:", error);
-      setPosts([]); 
+      setPosts([]);
     } finally {
       setLoading(false);
     }
@@ -76,6 +76,7 @@ export default function VitrineScreen({ navigation }) {
   useEffect(() => {
     if (isFocused) {
       fetchPosts();
+      refreshUser?.();
     }
   }, [isFocused, user?.uid, user?.id]);
 
@@ -84,7 +85,7 @@ export default function VitrineScreen({ navigation }) {
     if (!secureUserId) return;
 
     // Atualização otimista na interface (UX instantânea)
-    setPosts(currentPosts => 
+    setPosts(currentPosts =>
       currentPosts.map(p => {
         if (p.id === postId) {
           const currentCount = parseInt(p.likes_count || 0, 10);
@@ -136,12 +137,16 @@ export default function VitrineScreen({ navigation }) {
         <View style={styles.cardHeader}>
           <TouchableOpacity
             style={[styles.cardHeaderUser, styles.clickable]}
-            onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome }, currentUser: user })}
+            onPress={() => navigation.navigate('Profile', { profileUser: { id: item.userid, username: item.username, nome: item.nome, avatar_url: item.avatar_url }, currentUser: user })}
             accessibilityRole="button"
             accessibilityLabel={`Ir para o perfil de ${item.username}`}
           >
             <View style={styles.avatarRing}>
-              <MaterialCommunityIcons name="account" size={18} color="#ba7ef4" />
+              {item.avatar_url ? (
+                <Image source={{ uri: item.avatar_url }} style={styles.avatarImg} />
+              ) : (
+                <MaterialCommunityIcons name="account" size={18} color="#ba7ef4" />
+              )}
             </View>
             <Text style={styles.postUsername}>@{item.username}</Text>
           </TouchableOpacity>
@@ -266,7 +271,13 @@ export default function VitrineScreen({ navigation }) {
               <MaterialCommunityIcons name="hanger" size={26} color="#978d9d" />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('Profile', { profileUser: user, currentUser: user })} style={styles.clickable}>
-              <MaterialCommunityIcons name="account-outline" size={26} color="#978d9d" />
+              {user?.avatar_url ? (
+                <View style={styles.navAvatarRing}>
+                  <Image source={{ uri: user.avatar_url }} style={styles.navAvatarImg} />
+                </View>
+              ) : (
+                <MaterialCommunityIcons name="account-outline" size={26} color="#978d9d" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -290,15 +301,15 @@ export default function VitrineScreen({ navigation }) {
                 <MaterialCommunityIcons name="close" size={24} color="#ddb7ff" />
               </TouchableOpacity>
             </View>
-            <FlatList 
-              data={commentList} 
-              keyExtractor={(item) => item.id} 
+            <FlatList
+              data={commentList}
+              keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <View style={styles.commentBox}>
                   <Text style={styles.commentUser}>@{item.username}</Text>
                   <Text style={styles.commentText}>{item.texto}</Text>
                 </View>
-              )} 
+              )}
             />
             <View style={styles.commentInputArea}>
               <TextInput style={styles.input} placeholder="Comentar..." placeholderTextColor="#978d9d" value={newComment} onChangeText={setNewComment} />
@@ -326,7 +337,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   centerContainer: { flex: 1, backgroundColor: '#131313', justifyContent: 'center', alignItems: 'center' },
-  
+
   // Design de Cartões Lookbook Premium
   lookCard: {
     backgroundColor: '#160d22',
@@ -361,6 +372,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
     backgroundColor: '#131313',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 17,
+  },
+  navAvatarRing: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#ba7ef4',
+    overflow: 'hidden',
+    backgroundColor: '#131313',
+  },
+  navAvatarImg: {
+    width: '100%',
+    height: '100%',
   },
   postUsername: {
     color: '#e5e2e1',
